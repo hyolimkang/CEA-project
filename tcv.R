@@ -2,13 +2,14 @@
 
 # load library 
 library ("dampack")
+library ("data.table")
 
 # clear workspace
 rm (list = ls())
 
 
 # function 
-# create psa samples 
+# create psa samples for input parameters
 create_psa_sample <- function (sample_n) {
   
   # parameters
@@ -30,9 +31,9 @@ create_psa_sample <- function (sample_n) {
                 "log-normal", 
                 "log-normal",
                 "log-normal", 
-                "beta", 
-                "beta", 
-                "beta", 
+                "truncated-normal", 
+                "log-normal", 
+                "log-normal", 
                 "log-normal", 
                 "log-normal", 
                 "log-normal")
@@ -43,9 +44,9 @@ create_psa_sample <- function (sample_n) {
                                  "mean, sd",
                                  "mean, sd",
                                  "mean, sd", 
-                                 "a, b", 
-                                 "a, b", 
-                                 "a, b", 
+                                 "mean, sd, ll, ul", 
+                                 "mean, sd", 
+                                 "mean, sd", 
                                  "mean, sd", 
                                  "mean, sd", 
                                  "mean, sd")
@@ -56,7 +57,7 @@ create_psa_sample <- function (sample_n) {
                            c (183.07, 229.31), 
                            c (30.13,  31.06), 
                            c (110.95, 26.58), 
-                           c (87,     0.042), 
+                           c (.87,     0.02666667, .79, .95), 
                            c(384, 0.487), 
                            c(50, 0.5), 
                            c(1044187.37, 0.23), 
@@ -74,13 +75,57 @@ create_psa_sample <- function (sample_n) {
 }
 
 
+# function - computer icer for a given input parameter sample
+compute_icer <- function (v_cost,          # vaccine cost 
+                          facility_cost,   # health facility cost
+                          dmc, 
+                          dnmc, 
+                          indirect, 
+                          ve, 
+                          prevacc, 
+                          postvacc, 
+                          totcost_vacc, 
+                          totcost_unvacc) {
+  
+  # estimate icer
+  
+  
+  return (icer)
+}
+
 # main program
 # ------------------------------------------------------------------------------
 
-# create psa sample
-psa_sammple <- create_psa_sample (sample_n = 100)
 
+sample_size <- 1000
+
+# create psa sample
+psa_sample <- create_psa_sample (sample_n = sample_size)
+
+# create empty icer data table
+icer_dt <- data.table (icer = 1:sample_size)
+
+# loop through psa sample to generate icers
+for (i in 1:sample_size) {
+  
+  icer_sample <- compute_icer (psa_sample$v_cost [i],          # vaccine cost 
+                               psa_sample$facility_cost [i],   # health facility cost
+                               psa_sample$dmc [i], 
+                               psa_sample$dnmc [i], 
+                               psa_sample$indirect [i], 
+                               psa_sample$ve [i], 
+                               psa_sample$prevacc [i], 
+                               psa_sample$postvacc [i], 
+                               psa_sample$totcost_vacc [i], 
+                               psa_sample$totcost_unvacc [i])
+  
+  icer_dt [i, icer := icer_sample]
+}
+
+
+# create plot
+# http://r-statistics.co/ggplot2-Tutorial-With-R.html
 
 # test sample visualization
-hist (my_psa$v_cost)
+hist (psa_sammple$ve)
 
