@@ -15,15 +15,15 @@ create_psa_sample <- function (sample_n) {
   # parameters
   my_params <-c ("v_cost",          # vaccine cost 
                  "facility_cost",   # health facility cost
-                 "dmc", 
-                 "dnmc", 
-                 "indirect", 
-                 "ve", 
-                 "prevacc", 
-                 "postvacc", 
-                 "totcost_vacc", 
-                 "totcost_unvacc", 
-                 "icer")
+                 "dmc",             # direct medical cost 
+                 "dnmc",            # direct non-medical cost
+                 "indirect",        # indirect cost 
+                 "ve",              # vaccine-effectiveness
+                 "prevacc",         # pre-vaccination case
+                 "postvacc",        # post-vaccination case
+                 "totcost_vacc",    # total cost of vaccinated group
+                 "totcost_unvacc")  # total cost of unvaccinated group
+                  
   
   # distributions for parameters
   my_dists <- c("log-normal", 
@@ -35,10 +35,10 @@ create_psa_sample <- function (sample_n) {
                 "log-normal", 
                 "log-normal", 
                 "log-normal", 
-                "log-normal", 
                 "log-normal")
+                 
   
-  # paramter types
+  # parameter types
   my_parameterization_types <-c ("mean, sd", 
                                  "mean, sd", 
                                  "mean, sd",
@@ -48,8 +48,8 @@ create_psa_sample <- function (sample_n) {
                                  "mean, sd", 
                                  "mean, sd", 
                                  "mean, sd", 
-                                 "mean, sd", 
                                  "mean, sd")
+                                 
   
   # values for parameters
   my_dists_params <- list( c (4.45,   0.22673), 
@@ -61,8 +61,8 @@ create_psa_sample <- function (sample_n) {
                            c(384, 0.487), 
                            c(50, 0.5), 
                            c(1044187.37, 0.23), 
-                           c(147226.92, 0.59), 
-                           c(2680.57, 0.285))
+                           c(147226.92, 0.59))
+                          
   
   # input samples for PSA
   my_psa <- gen_psa_samp (params                 = my_params, 
@@ -97,7 +97,7 @@ compute_icer <- function (v_cost,          # vaccine cost
 # ------------------------------------------------------------------------------
 
 
-sample_size <- 1000
+sample_size <- 10000
 
 # create psa sample
 psa_sample <- create_psa_sample (sample_n = sample_size)
@@ -115,7 +115,7 @@ for (i in 1:sample_size) {
                                psa_sample$indirect [i], 
                                psa_sample$ve [i], 
                                psa_sample$prevacc [i], 
-                               psa_sample$postvacc [i], 
+                               psa_sampmyle$postvacc [i], 
                                psa_sample$totcost_vacc [i], 
                                psa_sample$totcost_unvacc [i])
   
@@ -128,4 +128,5 @@ for (i in 1:sample_size) {
 
 # test sample visualization
 hist (psa_sample$ve)
+
 
