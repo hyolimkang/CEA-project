@@ -127,5 +127,5 @@ for (i in 1:sample_size) {
 # http://r-statistics.co/ggplot2-Tutorial-With-R.html
 
 # test sample visualization
-hist (psa_sammple$ve)
+hist (psa_sample$ve)
 
