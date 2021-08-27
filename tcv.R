@@ -199,14 +199,8 @@ print (icer_estimate)
 create_icer_plot (dt        = icer_dt,
                   plot_file = "plot.pdf")
 
-
-# create plot
-# http://r-statistics.co/ggplot2-Tutorial-With-R.html
-
-# test sample visualization
-# hist (psa_sample$ve)
-
-
+# create cost-effectiveness curve
+# to do ...
 
 # stop time
 toc ()
@@ -217,14 +211,32 @@ print (Sys.time ())
 
 
 
+# extra
+# test sample visualization
+# hist (psa_sample$ve)
+
 
 
 
 
 # ------------------------------------------------------------------------------
 # things to do:
+# - icer calculation
+# - discounting (i) 3% cost & 3% effectiveness (ii) 3% for cost and 3% for effectiveness
 # - use same year as reference year for all cost calculations
 # - CHEERS checklist: https://www.equator-network.org/wp-content/uploads/2013/04/Revised-CHEERS-Checklist-Oct13.pdf
+# change input parameter sample to use latin hyper cube sampling
+# create cost-effectiveness curve
+# tornado regression: https://github.com/vaccine-impact/epi_covid/blob/master/code/epi_covid.R
+
+# Figures (results)
+# (i) CEA plane (ICER plot)
+# (ii) CEAC (cost-effectiveness curve)
+# (iii) tornado regression
+# 2 discounting scenarios (i) 3% for cost and 3% for effectiveness
+#                        (ii) 3% for cost and 3% for effectiveness
+# 3 figures per discounting scenario
+
 
 # learning resource
 # https://github.com/hesim-dev/rcea
