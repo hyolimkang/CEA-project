@@ -212,12 +212,24 @@ print (Sys.time ())
 
 
 
-# extra
+# extra 
+# tree 
+library(data.tree)
 
+Fever <- Node$new("Fever")
+Hospital <- Fever$AddChild("Visited Hospital")
+No_Hospital <- Fever$AddChild("Not visited Hospital")
+Tested <- Hospital$AddChild("Received typhoid test")
+Not_tested<- Hospital$AddChild("Not received typhoid test")
+Positive<-Tested$AddChild("Positive Typhoid")
+Negative<-Tested$AddChild("Negative Typhoid")
+Enrolled<-Positive$AddChild("Enrolled")
+Not_enrolled<-Positive$AddChld("Not Enrolled")
+VE_study<-Enrolled$AddChild("Effectiveness study")
+COI_study<-Enrolled$AddChild("COI study")
 
-
-
-
+plot(Fever)
+    
 
 
 
