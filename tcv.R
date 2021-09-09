@@ -207,6 +207,27 @@ create_icer_plot (dt        = icer_dt,
 toc ()
 print (Sys.time ())
 
+
+# cost function? 
+calculate_cost <- function(v_cost, tot_pop=113420, postvacc, prevacc, facility_cost, 
+                           dmc, dnmc, indirect) {
+  
+  totcost_vacc <- (v_cost)*(tot_pop) +(postvacc)*(facility_cost + dmc + dnmc + 
+                                                    indirect)
+  totost_unvacc<- (prevacc)*(facility_cost + dmc + dnmc + indirect)
+  
+  return(totcost_vacc)
+  return(totcost_unvacc)
+}
+
+params <- data.frame(v_cost = rlnorm(100, 1.49, 5.41), 
+                    tot_pop = 113420, 
+                  post_vacc = 38, 
+              facility_cost = rlnorm(100, )
+
+
+
+
 # end of -- main program
 # ------------------------------------------------------------------------------
 
