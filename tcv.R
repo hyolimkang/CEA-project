@@ -235,15 +235,17 @@ calculate_cost(v_cost = 4.45, postvacc = 38, prevacc = 63, facility_cost = 58.64
                dmc = 183.07, dnmc = 30.13, indirect = 110.95)
               
 
-res <- rep(NA, nrow(params))
 for(i in 1:nrow(params)) {
   par <- params[i, c("v_cost", "tot_pop", "postvacc", "prevacc", "facility_cost",
                      "dmc", "dnmc", "indirect")]
 }
 
-res[i] <-calculate_cost(v_cost = par$v_cost, postvacc = par$postvacc, 
+calculate_cost(v_cost = par$v_cost, postvacc = par$postvacc, 
                       prevacc  = par$prevacc, facility_cost = par$facility_cost,
                       dmc = par$dmc, dnmc = par$dnmc, indirect = par$indirect)
+
+# effect function?
+calculate_effect <- function()
 
 
 # end of -- main program
