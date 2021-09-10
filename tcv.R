@@ -6,6 +6,7 @@ library (data.table)
 library (ggplot2)
 library (tictoc)
 library (caret)
+library (rriskDistributions)
 
 # clear workspace
 rm (list = ls())
@@ -143,6 +144,29 @@ create_icer_plot <- function (dt,
 # ------------------------------------------------------------------------------
 
 
+# ------------------------------------------------------------------------------
+# cost function? 
+calculate_cost <- function (v_cost, 
+                            tot_pop  = 113420, 
+                            postvacc = 38, 
+                            prevacc  = 65, 
+                            facility_cost,
+                            dmc, 
+                            dnmc, 
+                            indirect) {
+  
+  totcost_vacc   <- (v_cost) * (tot_pop) + (postvacc) * (facility_cost + dmc + dnmc + indirect)
+  totcost_unvacc <- (prevacc)*(facility_cost + dmc + dnmc + indirect)
+  
+  cost_difference <- (totcost_vacc) - (totcost_unvacc)
+  
+  return (list (totcost_vacc    = totcost_vacc, 
+                totcost_unvacc  = totcost_unvacc, 
+                cost_difference = cost_difference)) 
+}
+# end of function -- calculate_cost
+# ------------------------------------------------------------------------------
+
 
 
 
@@ -208,41 +232,55 @@ toc ()
 print (Sys.time ())
 
 
-# cost function? 
-calculate_cost <- function(v_cost, tot_pop=113420, postvacc=38, prevacc=65, facility_cost, 
-                           dmc, dnmc, indirect) {
-  
-  totcost_vacc <- (v_cost)*(tot_pop) +(postvacc)*(facility_cost + dmc + dnmc + 
-                                                    indirect)
-  totcost_unvacc<- (prevacc)*(facility_cost + dmc + dnmc + indirect)
-  
-  cost_difference <- (totcost_vacc) - (totcost_unvacc)
-  
-  return(totcost_vacc)
-  return(totcost_unvacc)
-  return(cost_difference)
-}
 
-params <- data.frame(v_cost = rlnorm(100, 1.49, 5.41), 
-                    tot_pop = 113420, 
-                  postvacc  = 38, 
-                  prevacc   = 65,
-              facility_cost = rlnorm(100, 4.07, 4.80),
+
+params <- data.frame (v_cost = rlnorm (100, 1.49, 5.41), 
+                     tot_pop = 113420, 
+                     postvacc  = 38, 
+                     prevacc   = 65,
+                     facility_cost = rlnorm(100, 4.07, 4.80),
                     dmc     = rlnorm(100, 5.21, 5.44),
                    dnmc     = rlnorm(100, 3.41, 3.44),
                   indirect  = rlnorm(100, 4.72, 3.37))
-calculate_cost(v_cost = 4.45, postvacc = 38, prevacc = 63, facility_cost = 58.64,
-               dmc = 183.07, dnmc = 30.13, indirect = 110.95)
+
+params <- setDT (params)
+params [, totcost_vacc    := 0]
+params [, totcost_unvacc  := 0]
+params [, cost_difference := 0]
+
+icer_dt [i, `:=` (incremental_cost          = icer_sample$incremental_cost,
+                  incremental_effectiveness = icer_sample$incremental_effectiveness,
+                  icer                      = icer_sample$icer)]
+
+
+cost_results <- calculate_cost (v_cost = 4.45, 
+                                postvacc = 38, 
+                                prevacc = 63, 
+                                facility_cost = 58.64, 
+                                dmc = 183.07, 
+                                dnmc = 30.13, 
+                                indirect = 110.95)
               
 
-for(i in 1:nrow(params)) {
-  par <- params[i, c("v_cost", "tot_pop", "postvacc", "prevacc", "facility_cost",
+for (i in 1:nrow(params)) {
+  
+  par <- params [i, c("v_cost", "tot_pop", "postvacc", "prevacc", "facility_cost",
                      "dmc", "dnmc", "indirect")]
+  
+  
+  cost_results <- calculate_cost (v_cost        = par$v_cost, 
+                                  postvacc      = par$postvacc, 
+                                  prevacc       = par$prevacc, 
+                                  facility_cost = par$facility_cost,
+                                  dmc           = par$dmc, 
+                                  dnmc          = par$dnmc, 
+                                  indirect      = par$indirect)
+  
+  params [i, totcost_vacc    := cost_results$totcost_vacc]
+  params [i, totcost_unvacc  := cost_results$totcost_unvacc]
+  params [i, cost_difference := cost_results$cost_difference]
+  
 }
-
-calculate_cost(v_cost = par$v_cost, postvacc = par$postvacc, 
-                      prevacc  = par$prevacc, facility_cost = par$facility_cost,
-                      dmc = par$dmc, dnmc = par$dnmc, indirect = par$indirect)
 
 # effect function?
 calculate_effect <- function()
