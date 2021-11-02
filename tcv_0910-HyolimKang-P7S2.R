@@ -1,7 +1,8 @@
 # TCV cost-effectiveness
 
 # things to do 
-# update to latin hypercube s`ampling 
+# https://r4ds.had.co.nz/
+# update to latin hypercube sampling 
 
 # load libraries
 library (dampack)
@@ -13,7 +14,6 @@ library (rriskDistributions)
 library (BCEA)
 library (writexl)
 library (tidyverse)
-
 # clear workspace
 rm (list = ls())
 
@@ -276,78 +276,80 @@ plot ( x= wtp, y = probability_cea)
 
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
-owsa <- function (v_cost           = c(mid = 2.96,  low = 2.96,   high = 2.96), 
-                  delivery_cost    = c(mid = 1.49,  low = 0.246,  high = 4.752),
-                  tot_pop          = c(mid = 159831,low = 159831, high = 159831),
-                  vacc_pop         = c(mid =113420, low = 113420, high = 113420),
-                  postvacc_p1      = c(mid = 23,    low = 23,      high = 23),
-                  facility_cost    = c(mid = 97.33, low = 16.676, high = 301.209),
-                  dmc              = c(mid = 183.07,low = 18.507, high =532.241),
-                  dnmc             = c(mid =30.13,  low =  4.361, high = 118.718), 
-                  indirect         = c(mid = 73.09, low = 32.370, high = 135.262),
-                  ve               = c(mid = 0.81,  low =  0.55,  high =  0.916), 
-                  dw               = c(mid = 0.052, low =  0.080, high = 0.128),
-                  illness_duration = c(mid =0.043,  low = 0.0392, high = 0.0469),
-                  cfr              = c(mid = 0.019, low = 0.011,  high =  0.0441),
-                  age_death        = c(mid = 7.5,   low = 1.840,  high = 13.95),
-                  life_exp         = c(mid = 72.68, low =  69.576,high = 78.70),
+owsa <- function (v_cost           = 2.96,
+                  delivery_cost    = 1.49 ,
+                  tot_pop          = 159831,
+                  vacc_pop         = 113420,
+                  postvacc_p1      = 23,
+                  facility_cost    = 97.33 ,
+                  dmc              = 183.07 ,
+                  dnmc             = 30.13, 
+                  indirect         = 73.09 ,
+                  ve               = .81 ,
+                  dw               = .052,
+                  illness_duration = .043  , 
+                  cfr              = .019 ,
+                  age_death        =  7.5  , 
+                  life_exp         =  72.68 ,
                   parameters_change, 
                   change) {
   
   assign (x     = parameters_change, 
           value = get (parameter) * (1 - change))
-  
-  # save base values
-  base_value<- c(v_cost_temp           = v_cost$mid,
-                 delivery_cost_temp    = delivery_cost$mid,
-                 tot_pop_temp          = tot_pop$mid,
-                 vacc_pop_temp         = vacc_pop$mid,
-                 postvacc_p1_temp      = postvacc_p1$mid,
-                 facility_cost_temp    = facility_cost$mid,
-                 dmc_temp              = dmc$mid,
-                 dnmc_temp             = dnmc$mid, 
-                 indirect_temp         = indirect$mid,
-                 ve_temp               = ve$mid,
-                 dw_temp               = dw$mid,
-                 illness_duration_temp = illness_duration$mid, 
-                 cfr_temp              = cfr$mid,
-                 age_death_temp        = age_death$mid, 
-                 life_exp_temp         = life_exp$mid)
-  
-  low_value <-c(v_cost_low             = v_cost$low,
-                delivery_cost_low      = delivery_cost$low,
-                
-                
 
-  # create an empty data table 
-  icer_owsa <- data.frame(matrix(NA, nrow = 15, ncol = 3))
+  
+# values, mean/median, low95% estimate, that is 2.5% percentile, high95% estimate, that is 97.5% percentile
+  owsa <-       function(v_cost           = c(mid = 2.96,  low = 2.96,   high = 2.96), 
+                         delivery_cost    = c(mid = 1.49,  low = 0.246,  high = 4.752),
+                         tot_pop          = c(mid = 159831,low = 159831, high = 159831),
+                         vacc_pop         = c(mid = 113420, low = 113420, high = 113420),
+                         postvacc_p1      = c(mid = 23,    low =23,      high =23),
+                         facility_cost    = c(mid = 97.33, low = 16.676, high = 301.209),
+                         dmc              = c(mid = 183.07,low = 18.507, high =532.241),
+                         dnmc             = c(mid =30.13,  low =  4.361, high = 118.718), 
+                         indirect         = c(mid = 73.09, low = 32.370, high = 135.262),
+                         ve               = c(mid = 0.81,  low =  0.55,  high =  0.916), 
+                         dw               = c(mid = 0.052, low =  0.080, high = 0.128),
+                         illness_duration = c(mid =0.043,  low = 0.0392, high = 0.0469),
+                         cfr              = c(mid = 0.019, low = 0.011,  high =  0.0441),
+                         age_death        = c(mid = 7.5,   low = 1.840,  high = 13.95),
+                         life_exp         = c(mid = 72.68, low =  69.576,high = 78.70
+                          ))                          
+  midvalue<- c(v_cost_mid           = v_cost$mid,
+               delivery_cost_mid    = delivery_cost$mid,
+               tot_pop_mid          = tot_pop,
+               vacc_pop_mid         = vacc_pop,
+               postvacc_p1_mid      = postvacc_p1,
+               facility_cost_mid    = facility_cost$mid, 
+               dmc_mid              = dmc$mid,
+               dnmc_mid             = dnmc$mid, 
+               indirect_mid         = indirect$mid,
+               ve_mid               = ve$mid, 
+               dw_mid               = dw$mid,
+               illness_duration_mid = illness_duration$mid,
+               cfr_mid              = cfr$mid,
+               age_death_mid        = age_death$mid,
+               life_exp_mid         = life_exp$mid)
+  
 
-  # nested loops
   
-  # outer loop for 16 parameters 
-  for (i in 1: nrow(icer_owsa)) {
-    for (j in 1: ncol(icer_owsa)) {
-      
-    }
-  } 
+# mid values
   
-  # mid values
+  totcost_vacc_mid       <- (v_cost_mid + delivery_cost_mid) * (vacc_pop_mid) + (postvacc_p1_mid) * (facility_cost_mid + dmc_mid + dnmc_mid + indirect_mid)
   
-  totcost_vacc       <- (v_cost_temp + delivery_cost_temp) * (vacc_pop_temp) + (postvacc_p1_temp) * (facility_cost_temp + dmc_temp + dnmc_temp + indirect_temp)
+  prevacc_mid            <- (postvacc_p1_mid)/(1-ve_mid*(vacc_pop_mid/tot_pop_mid))
   
-  prevacc            <- (postvacc_p1_temp)/(1-ve_temp*(vacc_pop_temp/tot_pop_temp))
+  totcost_unvacc_mid     <- (prevacc_mid)*(facility_cost_mid + dmc_mid + dnmc_mid + indirect_mid)
   
-  totcost_unvacc     <- (prevacc_temp)*(facility_cost_temp + dmc_temp + dnmc_temp + indirect_temp)
+  incremental_cost_mid   <- (totcost_vacc_mid) - (totcost_unvacc_mid)
   
-  incremental_cost   <- (totcost_vacc_temp) - (totcost_unvacc_temp)
+  incremental_effect_mid <- (prevacc_mid)      - (postvacc_p1_mid) 
   
-  incremental_effect <- (prevacc)      - (postvacc_p1) 
+  icer_mid               <- incremental_cost_mid / incremental_effect_mid
   
-  icer               <- incremental_cost / incremental_effect
+  temp_distance_mid      <- (life_exp_mid) - (age_death_mid)
   
-  temp_distance      <- (life_exp) - (age_death)
-  
-  pre_death          <- (cfr)*(prevacc)
+  pre_death_mid         <- (cfr)*(prevacc)
   
   post_death         <- (cfr)*(postvacc_p1)
   
@@ -368,10 +370,23 @@ owsa <- function (v_cost           = c(mid = 2.96,  low = 2.96,   high = 2.96),
   icer_daly          <- incremental_cost / daly_total
   
   
-  # return data table with values for tornado plot 
-  
-  
-  return (list ( )) 
+  return (list (totcost_vacc       = totcost_vacc, 
+                totcost_unvacc     = totcost_unvacc, 
+                incremental_cost   = incremental_cost,
+                incremental_effect = incremental_effect,
+                icer               = icer,
+                prevacc            = prevacc,
+                temp_distance      = temp_distance,
+                pre_death          = pre_death,
+                post_death         = post_death,
+                yll_pre            = yll_pre,
+                yll_post           = yll_post,
+                yld_pre            = yld_pre,
+                yld_post           = yld_post,
+                yld_averted        = yld_averted,
+                yll_averted        = yll_averted,
+                daly_total         = daly_total,
+                icer_daly          = icer_daly)) 
 }
 # end of function -- owsa
 
@@ -438,9 +453,6 @@ for (parameter in parameters_change) {
 # main program
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
-
-# seed for random number generator
-set.seed (1)  
 
 # 2.5 % and 97.5% of each parameter (95% CI)
 
@@ -570,7 +582,8 @@ for (parameter in parameters_change) {
   
   i <- i + 1
   
-  owsa_sample_ul <- owsa(v_cost           = 2.96             ,
+
+   owsa_sample_ul <- owsa(v_cost           = 2.96             ,
                          delivery_cost    = 1.49             ,
                          tot_pop          = 159831           ,
                          vacc_pop         = 113420           ,
@@ -630,6 +643,9 @@ for (parameter in parameters_change) {
 
 
 # differences in ICER between upper - lower bound 
+  
+  diff <- data.frame(append_icers[13,3:ncol(append_icers)] - append_icers[1,3:ncol(append_icers)])
+  diff1 <- data.frame(append_icers[14,3:ncol(append_icers)] - append_icers[2,3:ncol(append_icers)])
   
   icer_diff <- data.frame(matrix(NA, nrow=12, ncol = ncol(append_icers)-1))
   names(icer_diff) <-names(append_icers)[2:ncol(append_icers)]
