@@ -2,6 +2,7 @@
 
 # load libraries
 library (data.table)
+library (ggplot2)
 
 rm (list = ls())
 
@@ -151,6 +152,24 @@ param_table <- icer_calc (param_dt = param_table)
 # Note: 
 # When a parameter takes a low/high value in comparison to mid value, icer value 
 # can decrease/increase depending on the relationship in the same/inverse direction.
+
+# ------------------------------------------------------------------------------
+# basic tornado plot 
+tornado_plot <- ggplot (param_table,
+                        aes (parameter, 
+                             ymin = icer_low, 
+                             ymax = icer_high, 
+                             color = parameter)) +
+  geom_linerange (size = 5) +
+  geom_hline (yintercept = param_table$icer_mid [1], 
+              linetype   = "dotted") +
+  xlab ("paramter") +
+  ylab ("ICER (cost per DALY averted)") + 
+  coord_flip() +
+  theme_bw () 
+
+print (tornado_plot)
+# ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
 # main program (end)
