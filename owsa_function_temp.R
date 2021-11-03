@@ -2,6 +2,8 @@ rm (list = ls())
 
 # icer calculating function
 
+# elements inside a function are datatable called "params"
+
   icer_calc <- function (params){
   
   # select a value in a second column in param data table if param$name is "name"
