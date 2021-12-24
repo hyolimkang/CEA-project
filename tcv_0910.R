@@ -662,8 +662,13 @@ ggplot(data = icer_dt, aes(x=incremental_daly_total,
   ylab("Incremental cost") +
   theme_bw()
 
+# icer (cost-per-DALY averted) median 50% value
 icer_dt_m <- icer_dt %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.5))
+
+# icer (cost-per-DALY averted) 95% lower bound: 2.5% value
 icer_dt_l <- icer_dt_m %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.025))
+
+# icer (cost-per-DALY averted) 95% upper bound: 97.5%  value
 icer_dt_h <- icer_dt_l %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.975))
 
 # delta cost <0, delta effect >0: less costly and averted more dalys = new intervention dominates.
