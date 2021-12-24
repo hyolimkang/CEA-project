@@ -177,7 +177,7 @@ create_psa_sample <- function (sample_n) {
 # https://stats.stackexchange.com/questions/495215/standard-error-standard-deviation-and-variance-confusion
 
 set.seed (3)
-runs <- 2000
+runs <- 8000
 
 # a design with n samples from k parameters
 A <- randomLHS (n = runs, 
@@ -308,112 +308,215 @@ lhs_sample <- as.data.table (lhs_sample)
                             age_death,
                             life_exp) {
     
-  
-  totcost_vacc_ipd   <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd)
-  
-  totcost_vacc_opd   <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
-  
-  totcost_vacc_tot   <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
-  
-  prevacc_ipd        <- (postvacc_p1_ipd)/(1-ve*(vacc_pop/tot_pop))
-
-  prevacc_opd        <- (postvacc_p1_opd)/(1-ve*(vacc_pop/tot_pop))
-  
-  prevacc            <- (prevacc_ipd)  + (prevacc_opd)
-  
-  totcost_unvacc     <- (prevacc)*(facility_cost + dmc + dnmc + indirect)
-  
-  incremental_cost_ipd   <- (totcost_vacc_ipd) - (totcost_unvacc)
-  
-  incremental_cost_opd   <- (totcost_vacc_opd) - (totcost_unvacc)
-  
-  incremental_cost_total <- (totcost_vacc_tot) - (totcost_unvacc)
-  
-  case_averted_ipd      <- (prevacc_ipd)      - (postvacc_p1_ipd)
-  
-  case_averted_opd      <- (prevacc_opd)      - (postvacc_p1_opd)
-  
-  case_averted_total    <- (case_averted_ipd) + (case_averted_opd)
-  
-  icer_ipd               <- incremental_cost_ipd / case_averted_ipd
-  
-  icer_opd               <- incremental_cost_opd / case_averted_opd
-  
-  icer_tot               <- incremental_cost_total / case_averted_total
-  
-  distance               <- (life_exp) - (age_death)
-  
-  pre_death_ipd          <- (cfr_ipd)*(prevacc_ipd)
-  
-  pre_death_opd          <- (cfr_opd)*(prevacc_opd)
-  
-  pre_death_total        <- (pre_death_ipd) + (pre_death_opd)
-  
-  post_death_ipd         <- (cfr_ipd)*(postvacc_p1_ipd)
-  
-  post_death_opd         <- (cfr_opd)*(postvacc_p1_opd)
-  
-  post_death_total       <-  (post_death_ipd) + (post_death_opd) 
-  
-  death_averted          <-  (pre_death_total) - (post_death_total)
-  
-  death_averted_ipd      <-  (pre_death_ipd) - (post_death_ipd)
-  
-  death_averted_opd      <-  (pre_death_opd) - (post_death_opd)
-  
-  yll_pre_ipd            <- (pre_death_ipd)*(distance)
-
-  yll_pre_opd            <- (pre_death_opd)*(distance)
-  
-  yll_pre_total          <- (yll_pre_ipd)  + (yll_pre_opd)
-  
-  yll_post_ipd           <- (post_death_ipd)*(distance)
-  
-  yll_post_opd           <- (post_death_opd)*(distance)
-  
-  yll_post_total         <- (yll_post_ipd) + (yll_post_opd)
-  
-  yld_pre_ipd            <- (prevacc_ipd)*(dw_ipd)*(illness_duration_ipd)
-  
-  yld_pre_opd            <- (prevacc_opd)*(dw_opd)*(illness_duration_opd)
-  
-  yld_pre_total          <- (yld_pre_ipd) + (yld_pre_opd)
-  
-  dalys_pre_total        <- (yll_pre_total) + (yld_pre_total)
-  
-  yld_post_ipd           <- (postvacc_p1_ipd)*(dw_ipd)*(illness_duration_ipd)
-  
-  yld_post_opd           <- (postvacc_p1_opd)*(dw_opd)*(illness_duration_opd)
-  
-  yld_post_total         <- (yld_post_ipd) + (yld_post_opd)
-  
-  dalys_post_total       <- (yll_post_total) + (yld_post_total)
-  
-  yld_averted_ipd        <- (prevacc_ipd - postvacc_p1_ipd)* (dw_ipd) *(illness_duration_ipd)
-
-  yld_averted_opd        <- (prevacc_opd - postvacc_p1_opd)* (dw_opd) *(illness_duration_opd)
-  
-  yld_averted_total      <- (yld_averted_ipd) + (yld_averted_opd) 
-  
-  yll_averted_ipd        <- (yll_pre_ipd)  -(yll_post_ipd)
-  
-  yll_averted_opd        <- (yll_pre_opd)  -(yll_post_opd)
-  
-  yll_averted_total      <- (yll_averted_ipd) + (yll_averted_opd)
-  
-  incremental_daly_ipd   <- (yld_averted_ipd) + (yll_averted_ipd)
-  
-  incremental_daly_opd   <- (yld_averted_opd) + (yll_averted_opd)
-  
-  incremental_daly_total <- (yll_averted_total) + (yld_averted_total)
-  
-  icer_daly_ipd          <- incremental_cost_ipd / incremental_daly_ipd
-  
-  icer_daly_opd          <- incremental_cost_opd / incremental_daly_opd
-  
-  icer_daly_total          <- incremental_cost_total / incremental_daly_total
-  
-  
+    # total cost for inpatients (vaccinated)
+    
+    totcost_vacc_ipd       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd)
+    
+    # total cost for outpatiens (vaccinated)
+    
+    totcost_vacc_opd       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
+    
+    # total cost of vaccinated population
+    
+    totcost_vacc_tot       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
+    
+    # number of pre-vaccination typhoid case retrospectively calculated (inpatients)
+    
+    prevacc_ipd            <- (postvacc_p1_ipd)/(1-ve*(vacc_pop/tot_pop))
+    
+    # number of pre-vaccination typhoid case retrospectively calculated (outpatients)
+    
+    prevacc_opd            <- (postvacc_p1_opd)/(1-ve*(vacc_pop/tot_pop))
+    
+    # total number of pre-vaccination cases (inpatients + outpatients)
+    
+    prevacc                <- (prevacc_ipd)  + (prevacc_opd)
+    
+    # total cost of pre-vaccination typhoid cases
+    
+    totcost_unvacc         <- (prevacc)*(facility_cost + dmc + dnmc + indirect)
+    
+    # incremental cost of inpatients 
+    
+    incremental_cost_ipd   <- (totcost_vacc_ipd) - (totcost_unvacc)
+    
+    # incremental cost of outpatients
+    
+    incremental_cost_opd   <- (totcost_vacc_opd) - (totcost_unvacc)
+    
+    # incremental cost total (used for the final value as a delta C)
+    
+    incremental_cost_total <- (totcost_vacc_tot) - (totcost_unvacc)
+    
+    # averted inpatient cases
+    
+    case_averted_ipd       <- (prevacc_ipd)      - (postvacc_p1_ipd)
+    
+    # averted outpatient cases
+    
+    case_averted_opd       <- (prevacc_opd)      - (postvacc_p1_opd)
+    
+    # total averted cases 
+    
+    case_averted_total     <- (case_averted_ipd) + (case_averted_opd)
+    
+    # icer of inpatients in terms of cost per case averted (not used in the paper)
+    
+    icer_ipd               <- incremental_cost_ipd / case_averted_ipd
+    
+    # icer of outpatients in terms of cost per case averted (not used in the paper)
+    
+    icer_opd               <- incremental_cost_opd / case_averted_opd
+    
+    # total incremental cost in terms of cost per case averted (not used in the paper)
+    
+    icer_tot               <- incremental_cost_total / case_averted_total
+    
+    # YLL calculation component: amount of years of life loss between life-expectancy and average age at death
+    
+    distance               <- (life_exp) - (age_death)
+    
+    # number of deaths in no-vaccination situation (inpatients)
+    
+    pre_death_ipd          <- (cfr_ipd)*(prevacc_ipd)
+    
+    # number of deaths in no-vaccination situation (outpatients)
+    
+    pre_death_opd          <- (cfr_opd)*(prevacc_opd)
+    
+    # number of deaths in no-vaccination situation (total)
+    
+    pre_death_total        <- (pre_death_ipd) + (pre_death_opd)
+    
+    # number of deaths post-vaccination situation (inpatients)
+    
+    post_death_ipd         <- (cfr_ipd)*(postvacc_p1_ipd)
+    
+    # number of deaths post-vaccination situation (outpatients)
+    
+    post_death_opd         <- (cfr_opd)*(postvacc_p1_opd)
+    
+    # number of deaths post-vaccination situation (total)
+    
+    post_death_total       <-  (post_death_ipd) + (post_death_opd) 
+    
+    # number of deaths averted (total)
+    
+    death_averted          <-  (pre_death_total) - (post_death_total)
+    
+    # number of deaths averted (inpatients)
+    
+    death_averted_ipd      <-  (pre_death_ipd) - (post_death_ipd)
+    
+    # number of deaths averted (outpatients)
+    
+    death_averted_opd      <-  (pre_death_opd) - (post_death_opd)
+    
+    # YLL of inpatients in the pre-vaccination situation (total number of inpatient deaths * amount of years loss per person)
+    
+    yll_pre_ipd            <- (pre_death_ipd)*(distance)
+    
+    # YLL of outpatients in the pre-vaccination situation (total number of outpatient deaths * amount of years loss per person)
+    
+    yll_pre_opd            <- (pre_death_opd)*(distance)
+    
+    # YLL total in pre-vaccination 
+    
+    yll_pre_total          <- (yll_pre_ipd)  + (yll_pre_opd)
+    
+    # amount of years loss for inpatients in post-vaccination
+    
+    yll_post_ipd           <- (post_death_ipd)*(distance)
+    
+    # amount of years loss for outpatients in post-vaccination
+    
+    yll_post_opd           <- (post_death_opd)*(distance)
+    
+    # total amount of years loss in post-vaccination
+    
+    yll_post_total         <- (yll_post_ipd) + (yll_post_opd)
+    
+    # years of life with disease for inpatients in pre-vacc situation (number of inpatient cases * disability weight * total illness duration presented as years)
+    
+    yld_pre_ipd            <- (prevacc_ipd)*(dw_ipd)*(illness_duration_ipd)
+    
+    # years of life with disease for outpatients in pre-vacc situation (number of outpatient cases * disability weight * total illness duration presented as years)
+    
+    yld_pre_opd            <- (prevacc_opd)*(dw_opd)*(illness_duration_opd)
+    
+    # total YLD of pre-vaccination typhoid cases
+    
+    yld_pre_total          <- (yld_pre_ipd) + (yld_pre_opd)
+    
+    # total DALYs for pre-vaccination typhoid cases (YLL total + YLD total)
+    
+    dalys_pre_total        <- (yll_pre_total) + (yld_pre_total)
+    
+    # years of life with disease for inpatients in post-vacc situation (number of inpatient cases * disability weight * total illness duration presented as years)
+    
+    yld_post_ipd           <- (postvacc_p1_ipd)*(dw_ipd)*(illness_duration_ipd)
+    
+    # years of life with disease for outpatients in post-vacc situation (number of outpatient cases * disability weight * total illness duration presented as years)
+    
+    yld_post_opd           <- (postvacc_p1_opd)*(dw_opd)*(illness_duration_opd)
+    
+    # total YLD for post-vaccination typhoid cases (YLL total + YLD total)
+    
+    yld_post_total         <- (yld_post_ipd) + (yld_post_opd)
+    
+    # total DALYs for post-vaccination typhoid cases (YLL total + YLD total)
+    
+    dalys_post_total       <- (yll_post_total) + (yld_post_total)
+    
+    # YLD averted for inpatients
+    
+    yld_averted_ipd        <- (prevacc_ipd - postvacc_p1_ipd)* (dw_ipd) *(illness_duration_ipd)
+    
+    # YLD averted for outpatients
+    
+    yld_averted_opd        <- (prevacc_opd - postvacc_p1_opd)* (dw_opd) *(illness_duration_opd)
+    
+    # total YLD averted
+    
+    yld_averted_total      <- (yld_averted_ipd) + (yld_averted_opd) 
+    
+    # YLL averted  for inpatients
+    
+    yll_averted_ipd        <- (yll_pre_ipd)  -(yll_post_ipd)
+    
+    # YLL averted for outpatients
+    
+    yll_averted_opd        <- (yll_pre_opd)  -(yll_post_opd)
+    
+    # total YLL averted
+    
+    yll_averted_total      <- (yll_averted_ipd) + (yll_averted_opd)
+    
+    # DALYs averted for inpatients
+    
+    incremental_daly_ipd   <- (yld_averted_ipd) + (yll_averted_ipd)
+    
+    # DALYs averted for outpatients
+    
+    incremental_daly_opd   <- (yld_averted_opd) + (yll_averted_opd)
+    
+    # total DALYs averted (used for final ICER value in the paper: delta E as a denominator)
+    
+    incremental_daly_total <- (yll_averted_total) + (yld_averted_total)
+    
+    # ICER for inpatients presented as cost-per-DALY averted
+    
+    icer_daly_ipd          <- incremental_cost_ipd / incremental_daly_ipd
+    
+    # ICER for outpatients presented as cost-per-DALY averted
+    
+    icer_daly_opd          <- incremental_cost_opd / incremental_daly_opd
+    
+    # ICER presented as cost-per-DALY averted (used in the paper as a final value)
+    
+    icer_daly_total        <- incremental_cost_total / incremental_daly_total
+    
+    
   
   return (list (totcost_vacc_ipd              = totcost_vacc_ipd,
                 totcost_vacc_opd              = totcost_vacc_opd,
@@ -544,16 +647,6 @@ lhs_sample <- as.data.table (lhs_sample)
     )]
   }
   
-# central value
-
-mean_incremental_cost       <- mean(icer_dt$incremental_cost_total)
-mean_case_averted           <- mean(icer_dt$case_averted_total)
-mean_prevacc                <- mean(icer_dt$prevacc)
-mean_icer_daly_ipd          <- mean(icer_dt$icer_daly_ipd)
-mean_icer_daly_opd          <- mean(icer_dt$icer_daly_opd)
-mean_icer_daly_total        <- mean(icer_dt$icer_daly_total)
-mean_incremental_daly_total <- mean(icer_dt$incremental_daly_total)
-
 # icer plot 
 options(scipen=9999)
 plot ( x = icer_dt$incremental_daly_total, y =icer_dt$incremental_cost_total)
@@ -665,49 +758,29 @@ inc_daly$ui_interval <- seq(0, 100, 2.5)
 # combine daly difference table
 daly_diff <- cbind(daly_ui_unv, daly_ui_vac,inc_daly)
 
-
-
+# probability 
 probability_cea <- seq(from=0, to= 1, by= .01)
-
-
 
 wtp<- quantile(icer_dt$icer_daly_total, probability_cea)
 
 wtp_dt <- as.data.table(wtp)
 
-
+# wtp table with probs
 wtp_prob <- cbind (wtp_dt, probability_cea)
 
-wtp_inv <- wtp_prob[order(-wtp),]
+write_xlsx(wtp_prob, "/Users/hyolimkang/Desktop/IVI onedrive/OneDrive - International Vaccine Institute/Desktop/2021/TCV \\wtp_prob.xlsx")
 
-wtp_inv <- wtp_prob[order(-wtp),]
-wtp_inv[, probability_cea :=NULL]
-wtp_inv <- cbind(wtp_inv, probability_cea)
-# wtp_inv <- wtp_inv %>% filter(wtp > 0)
-
-# keep only positive wtp values
+# keep only positive wtp values (negative values are dominant values, no need to show)
 wtp_post <- wtp_prob %>% filter(wtp > 0)
-
 
 # ceac ggplot
 
-ceac <- ggplot(data = wtp_prob, aes(x = wtp, y = probability_cea)) +
+ceac <- ggplot(data = wtp_post, aes(x = wtp, y = probability_cea)) +
   geom_line(color = 'darkblue') +
   scale_x_continuous(expand = c(0,0)) +
-  scale_y_continuous(expand = c(0,0)) 
-ceac
-
-ceac_inv <-  ggplot(data = wtp_inv, aes(x = wtp, y = probability_cea)) +
-  geom_line(color = 'darkblue') +
-  scale_x_continuous(expand = c(0,0)) +
-  scale_y_continuous(expand = c(0,0))
-ceac_inv
-
-ceac_base <- ggplot(NULL, aes(x = wtp, y = probability_cea)) +
-  geom_line(data = wtp_prob, col = 'red') +
-  geom_line(data = wtp_inv, col = 'blue') +
+  scale_y_continuous(expand = c(0,0)) +
   theme_bw()
-ceac_base
+ceac
 
 # ------------------------------------------------------------------------------
 # scenario analysis (phase 2)
@@ -716,7 +789,7 @@ ceac_base
 # ------------------------------------------------------------------------------
 
 set.seed (3)
-runs <- 2000
+runs <- 4000
 
 # a design with n samples from k parameters
 A <- randomLHS (n = runs, 
@@ -724,8 +797,6 @@ A <- randomLHS (n = runs,
 # It is common to transform the margins of the design (the columns) 
 # into other distributions
 # for gamma dist: a= shape (m^2/se^2), b= rate (se^2/m)
-
-
 
 lhs_sample_s <- matrix (nrow = nrow(A), ncol = ncol(A))
 lhs_sample_s [,1]  <- 2.96
@@ -758,14 +829,18 @@ lhs_sample_s [,17] <- qgamma (p = A[,17],  shape = ((76.13798/28.24641)^2), rate
                               lower.tail = TRUE, log.p = FALSE)
 # VE for beta distribution 
 lhs_sample_s [,18] <- qbeta  (p = A[,18], shape1 =  5.362628 , shape2 = 1.20922, ncp=0, lower.tail = TRUE, log.p = FALSE)
+# DW (ipd) for beta dist
 lhs_sample_s [,19] <- qbeta  (p = A[,19], shape1 =  348.18, shape2 = 1309.82, ncp=0, lower.tail = TRUE, log.p = FALSE)
+# DW (opd) for beta dist
 lhs_sample_s [,20] <- qbeta  (p = A[,20], shape1 =  25.58192, shape2 = 466.3781, ncp=0, lower.tail = TRUE, log.p = FALSE)
 
 lhs_sample_s [,21] <- qgamma (p = A[,21], shape = ((0.0404/0.1532)^2), rate = (0.0404/(0.1532)^2), 
                               lower.tail = TRUE, log.p = FALSE)
 lhs_sample_s [,22] <- qgamma (p = A[,22], shape = ((0.04559688/0.02500143)^2), rate = (0.04559688/(0.02500143)^2), 
                               lower.tail = TRUE, log.p = FALSE)
+# CFR (ipd) for beta dists
 lhs_sample_s [,23] <- qbeta  (p = A[,23], shape1 =  9.531057, shape2 = 330.8638, ncp=0, lower.tail = TRUE, log.p = FALSE)
+# CFR (opd) for beta dists
 lhs_sample_s [,24] <- qbeta  (p = A[,24], shape1 =  21.23796, shape2 = 1096.55, ncp=0, lower.tail = TRUE, log.p = FALSE)
 lhs_sample_s [,25] <- qgamma (p = A[,25], shape = ((7.56/0.527)^2), rate = (7.56/(0.527)^2), 
                               lower.tail = TRUE, log.p = FALSE)
@@ -831,107 +906,211 @@ icer_scenario <- function (v_cost            = 2.96,
                            age_death,
                            life_exp) {
   
+  # total cost for inpatients (vaccinated)
+  
   totcost_vacc_ipd       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd)
+  
+  # total cost for outpatiens (vaccinated)
   
   totcost_vacc_opd       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
   
+  # total cost of vaccinated population
+  
   totcost_vacc_tot       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
+  
+  # number of pre-vaccination typhoid case retrospectively calculated (inpatients)
   
   prevacc_ipd            <- (postvacc_p1_ipd)/(1-ve*(vacc_pop/tot_pop))
   
+  # number of pre-vaccination typhoid case retrospectively calculated (outpatients)
+  
   prevacc_opd            <- (postvacc_p1_opd)/(1-ve*(vacc_pop/tot_pop))
+  
+  # total number of pre-vaccination cases (inpatients + outpatients)
   
   prevacc                <- (prevacc_ipd)  + (prevacc_opd)
   
+  # total cost of pre-vaccination typhoid cases
+  
   totcost_unvacc         <- (prevacc)*(facility_cost + dmc + dnmc + indirect)
+  
+  # incremental cost of inpatients 
   
   incremental_cost_ipd   <- (totcost_vacc_ipd) - (totcost_unvacc)
   
+  # incremental cost of outpatients
+  
   incremental_cost_opd   <- (totcost_vacc_opd) - (totcost_unvacc)
+  
+  # incremental cost total (used for the final value as a delta C)
   
   incremental_cost_total <- (totcost_vacc_tot) - (totcost_unvacc)
   
+  # averted inpatient cases
+  
   case_averted_ipd       <- (prevacc_ipd)      - (postvacc_p1_ipd)
+  
+  # averted outpatient cases
   
   case_averted_opd       <- (prevacc_opd)      - (postvacc_p1_opd)
   
+  # total averted cases 
+  
   case_averted_total     <- (case_averted_ipd) + (case_averted_opd)
+  
+  # icer of inpatients in terms of cost per case averted (not used in the paper)
   
   icer_ipd               <- incremental_cost_ipd / case_averted_ipd
   
+  # icer of outpatients in terms of cost per case averted (not used in the paper)
+  
   icer_opd               <- incremental_cost_opd / case_averted_opd
+  
+  # total incremental cost in terms of cost per case averted (not used in the paper)
   
   icer_tot               <- incremental_cost_total / case_averted_total
   
+  # YLL calculation component: amount of years of life loss between life-expectancy and average age at death
+  
   distance               <- (life_exp) - (age_death)
+  
+  # number of deaths in no-vaccination situation (inpatients)
   
   pre_death_ipd          <- (cfr_ipd)*(prevacc_ipd)
   
+  # number of deaths in no-vaccination situation (outpatients)
+  
   pre_death_opd          <- (cfr_opd)*(prevacc_opd)
+  
+  # number of deaths in no-vaccination situation (total)
   
   pre_death_total        <- (pre_death_ipd) + (pre_death_opd)
   
+  # number of deaths post-vaccination situation (inpatients)
+  
   post_death_ipd         <- (cfr_ipd)*(postvacc_p1_ipd)
+  
+  # number of deaths post-vaccination situation (outpatients)
   
   post_death_opd         <- (cfr_opd)*(postvacc_p1_opd)
   
+  # number of deaths post-vaccination situation (total)
+  
   post_death_total       <-  (post_death_ipd) + (post_death_opd) 
+  
+  # number of deaths averted (total)
   
   death_averted          <-  (pre_death_total) - (post_death_total)
   
+  # number of deaths averted (inpatients)
+  
   death_averted_ipd      <-  (pre_death_ipd) - (post_death_ipd)
+  
+  # number of deaths averted (outpatients)
   
   death_averted_opd      <-  (pre_death_opd) - (post_death_opd)
   
+  # YLL of inpatients in the pre-vaccination situation (total number of inpatient deaths * amount of years loss per person)
+  
   yll_pre_ipd            <- (pre_death_ipd)*(distance)
+
+  # YLL of outpatients in the pre-vaccination situation (total number of outpatient deaths * amount of years loss per person)
   
   yll_pre_opd            <- (pre_death_opd)*(distance)
   
+  # YLL total in pre-vaccination 
+  
   yll_pre_total          <- (yll_pre_ipd)  + (yll_pre_opd)
+  
+  # amount of years loss for inpatients in post-vaccination
   
   yll_post_ipd           <- (post_death_ipd)*(distance)
   
+  # amount of years loss for outpatients in post-vaccination
+  
   yll_post_opd           <- (post_death_opd)*(distance)
+  
+  # total amount of years loss in post-vaccination
   
   yll_post_total         <- (yll_post_ipd) + (yll_post_opd)
   
+  # years of life with disease for inpatients in pre-vacc situation (number of inpatient cases * disability weight * total illness duration presented as years)
+  
   yld_pre_ipd            <- (prevacc_ipd)*(dw_ipd)*(illness_duration_ipd)
+
+  # years of life with disease for outpatients in pre-vacc situation (number of outpatient cases * disability weight * total illness duration presented as years)
   
   yld_pre_opd            <- (prevacc_opd)*(dw_opd)*(illness_duration_opd)
   
+  # total YLD of pre-vaccination typhoid cases
+  
   yld_pre_total          <- (yld_pre_ipd) + (yld_pre_opd)
+  
+  # total DALYs for pre-vaccination typhoid cases (YLL total + YLD total)
   
   dalys_pre_total        <- (yll_pre_total) + (yld_pre_total)
   
+  # years of life with disease for inpatients in post-vacc situation (number of inpatient cases * disability weight * total illness duration presented as years)
+  
   yld_post_ipd           <- (postvacc_p1_ipd)*(dw_ipd)*(illness_duration_ipd)
+  
+  # years of life with disease for outpatients in post-vacc situation (number of outpatient cases * disability weight * total illness duration presented as years)
   
   yld_post_opd           <- (postvacc_p1_opd)*(dw_opd)*(illness_duration_opd)
   
+  # total YLD for post-vaccination typhoid cases (YLL total + YLD total)
+  
   yld_post_total         <- (yld_post_ipd) + (yld_post_opd)
+  
+  # total DALYs for post-vaccination typhoid cases (YLL total + YLD total)
   
   dalys_post_total       <- (yll_post_total) + (yld_post_total)
   
+  # YLD averted for inpatients
+  
   yld_averted_ipd        <- (prevacc_ipd - postvacc_p1_ipd)* (dw_ipd) *(illness_duration_ipd)
+  
+  # YLD averted for outpatients
   
   yld_averted_opd        <- (prevacc_opd - postvacc_p1_opd)* (dw_opd) *(illness_duration_opd)
   
+  # total YLD averted
+  
   yld_averted_total      <- (yld_averted_ipd) + (yld_averted_opd) 
+  
+  # YLL averted  for inpatients
   
   yll_averted_ipd        <- (yll_pre_ipd)  -(yll_post_ipd)
   
+  # YLL averted for outpatients
+  
   yll_averted_opd        <- (yll_pre_opd)  -(yll_post_opd)
+  
+  # total YLL averted
   
   yll_averted_total      <- (yll_averted_ipd) + (yll_averted_opd)
   
+  # DALYs averted for inpatients
+  
   incremental_daly_ipd   <- (yld_averted_ipd) + (yll_averted_ipd)
+  
+  # DALYs averted for outpatients
   
   incremental_daly_opd   <- (yld_averted_opd) + (yll_averted_opd)
   
+  # total DALYs averted (used for final ICER value in the paper: delta E as a denominator)
+  
   incremental_daly_total <- (yll_averted_total) + (yld_averted_total)
+  
+  # ICER for inpatients presented as cost-per-DALY averted
   
   icer_daly_ipd          <- incremental_cost_ipd / incremental_daly_ipd
   
+  # ICER for outpatients presented as cost-per-DALY averted
+  
   icer_daly_opd          <- incremental_cost_opd / incremental_daly_opd
+  
+  # ICER presented as cost-per-DALY averted (used in the paper as a final value)
   
   icer_daly_total        <- incremental_cost_total / incremental_daly_total
   
@@ -1066,16 +1245,6 @@ for (i in 1:runs) {
                        
   )]
 }
-
-# central value
-
-mean_cost                   <- mean(icer_dt_s$incremental_cost_total)
-mean_case_averted           <- mean(icer_dt_s$case_averted_total)
-mean_prevacc                <- mean(icer_dt_s$prevacc)
-mean_icer_daly_ipd          <- mean(icer_dt_s$icer_daly_ipd)
-mean_icer_daly_opd          <- mean(icer_dt_s$icer_daly_opd)
-mean_icer_daly_total        <- mean(icer_dt_s$icer_daly_total)
-mean_incremental_daly_total <- mean(icer_dt_s$incremental_daly_total)
 
 # cea plane
 ggplot(data = icer_dt_s, aes(x=incremental_daly_total,
