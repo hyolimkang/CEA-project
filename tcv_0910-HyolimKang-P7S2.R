@@ -38,7 +38,7 @@ create_psa_sample <- function (sample_n) {
                  "illness_duration",# illness duration: days
                  "cfr",             # case fatality rate
                  "age_death",       # average age at death
-                 "life_exp"   )      # reference life expectancy
+                 "life_exp"   )     # reference life expectancy
                  
   
   # constant value
@@ -54,19 +54,19 @@ create_psa_sample <- function (sample_n) {
   
   # distributions for parameters
   my_dists <- c("constant",
-                "log-normal",
+                "gamma",
                 "constant",
                 "constant",
                 "constant",
-                "log-normal",
-                "log-normal",
-                "log-normal",
-                "log-normal",
+                "gamma",
+                "gamma",
+                "gamma",
+                "gamma",
                 "truncated-normal",
                 "truncated-normal",
-                "log-normal",
-                "truncated-normal",
-                "truncated-normal",
+                "gamma",
+                "beta",
+                "normal",
                 "truncated-normal")
   
   
@@ -298,58 +298,25 @@ owsa <- function (v_cost           = 2.96,
           value = get (parameter) * (1 - change))
 
   
-# values, mean/median, low95% estimate, that is 2.5% percentile, high95% estimate, that is 97.5% percentile
-  owsa <-       function(v_cost           = c(mid = 2.96,  low = 2.96,   high = 2.96), 
-                         delivery_cost    = c(mid = 1.49,  low = 0.246,  high = 4.752),
-                         tot_pop          = c(mid = 159831,low = 159831, high = 159831),
-                         vacc_pop         = c(mid = 113420, low = 113420, high = 113420),
-                         postvacc_p1      = c(mid = 23,    low =23,      high =23),
-                         facility_cost    = c(mid = 97.33, low = 16.676, high = 301.209),
-                         dmc              = c(mid = 183.07,low = 18.507, high =532.241),
-                         dnmc             = c(mid =30.13,  low =  4.361, high = 118.718), 
-                         indirect         = c(mid = 73.09, low = 32.370, high = 135.262),
-                         ve               = c(mid = 0.81,  low =  0.55,  high =  0.916), 
-                         dw               = c(mid = 0.052, low =  0.080, high = 0.128),
-                         illness_duration = c(mid =0.043,  low = 0.0392, high = 0.0469),
-                         cfr              = c(mid = 0.019, low = 0.011,  high =  0.0441),
-                         age_death        = c(mid = 7.5,   low = 1.840,  high = 13.95),
-                         life_exp         = c(mid = 72.68, low =  69.576,high = 78.70
-                          ))                          
-  midvalue<- c(v_cost_mid           = v_cost$mid,
-               delivery_cost_mid    = delivery_cost$mid,
-               tot_pop_mid          = tot_pop,
-               vacc_pop_mid         = vacc_pop,
-               postvacc_p1_mid      = postvacc_p1,
-               facility_cost_mid    = facility_cost$mid, 
-               dmc_mid              = dmc$mid,
-               dnmc_mid             = dnmc$mid, 
-               indirect_mid         = indirect$mid,
-               ve_mid               = ve$mid, 
-               dw_mid               = dw$mid,
-               illness_duration_mid = illness_duration$mid,
-               cfr_mid              = cfr$mid,
-               age_death_mid        = age_death$mid,
-               life_exp_mid         = life_exp$mid)
-  
 
   
 # mid values
   
-  totcost_vacc_mid       <- (v_cost_mid + delivery_cost_mid) * (vacc_pop_mid) + (postvacc_p1_mid) * (facility_cost_mid + dmc_mid + dnmc_mid + indirect_mid)
+  totcost_vacc      <- (v_cost+ delivery_cost) * (vacc_pop) + (postvacc_p1) * (facility_cost + dmc + dnmc + indirect)
   
-  prevacc_mid            <- (postvacc_p1_mid)/(1-ve_mid*(vacc_pop_mid/tot_pop_mid))
+  prevacc           <- (postvacc_p1)/(1-ve*(vacc_pop/tot_pop))
   
-  totcost_unvacc_mid     <- (prevacc_mid)*(facility_cost_mid + dmc_mid + dnmc_mid + indirect_mid)
+  totcost_unvacc     <- (prevacc)*(facility_cost + dmc + dnmc + indirect)
   
-  incremental_cost_mid   <- (totcost_vacc_mid) - (totcost_unvacc_mid)
+  incremental_cost  <- (totcost_vacc) - (totcost_unvacc)
   
-  incremental_effect_mid <- (prevacc_mid)      - (postvacc_p1_mid) 
+  incremental_effect <- (prevacc)      - (postvacc_p1) 
   
-  icer_mid               <- incremental_cost_mid / incremental_effect_mid
+  icer           <- incremental_cost / incremental_effect
   
-  temp_distance_mid      <- (life_exp_mid) - (age_death_mid)
+  temp_distance      <- (life_exp) - (age_death)
   
-  pre_death_mid         <- (cfr)*(prevacc)
+  pre_death         <- (cfr)*(prevacc)
   
   post_death         <- (cfr)*(postvacc_p1)
   
@@ -502,23 +469,7 @@ for (parameter in parameters_change) {
   
   
   
-  icer_dt_owsa_central [i, `:=` ( totcost_unvacc            = owsa_sample$totcost_unvacc,
-                                  totcost_vacc              = owsa_sample$totcost_vacc,
-                                  incremental_cost          = owsa_sample$incremental_cost,
-                                  incremental_effect        = owsa_sample$incremental_effect,
-                                  icer                      = owsa_sample$icer,
-                                  prevacc                   = owsa_sample$prevacc,
-                                  temp_distance             = owsa_sample$temp_distance,
-                                  pre_death                 = owsa_sample$pre_death,
-                                  post_death                = owsa_sample$post_death,
-                                  yll_pre                   = owsa_sample$yll_pre,
-                                  yll_post                  = owsa_sample$yll_post,
-                                  yld_pre                   = owsa_sample$yld_pre,
-                                  yld_post                  = owsa_sample$yld_post,
-                                  yld_averted               = owsa_sample$yld_averted,
-                                  yll_averted               = owsa_sample$yll_averted,
-                                  daly_total                = owsa_sample$daly_total,
-                                  icer_daly                 = owsa_sample$icer_daly
+  icer_dt_owsa_central [i, `:=` (icer_daly                 = owsa_sample$icer_daly
   )]
   
 }
@@ -552,23 +503,7 @@ i <- i + 1
 
   
   
-  icer_dt_owsa_ll [i, `:=` ( totcost_unvacc    = owsa_sample_ll$totcost_unvacc,
-                     totcost_vacc              = owsa_sample_ll$totcost_vacc,
-                     incremental_cost          = owsa_sample_ll$incremental_cost,
-                     incremental_effect        = owsa_sample_ll$incremental_effect,
-                     icer                      = owsa_sample_ll$icer,
-                     prevacc                   = owsa_sample_ll$prevacc,
-                     temp_distance             = owsa_sample_ll$temp_distance,
-                     pre_death                 = owsa_sample_ll$pre_death,
-                     post_death                = owsa_sample_ll$post_death,
-                     yll_pre                   = owsa_sample_ll$yll_pre,
-                     yll_post                  = owsa_sample_ll$yll_post,
-                     yld_pre                   = owsa_sample_ll$yld_pre,
-                     yld_post                  = owsa_sample_ll$yld_post,
-                     yld_averted               = owsa_sample_ll$yld_averted,
-                     yll_averted               = owsa_sample_ll$yll_averted,
-                     daly_total                = owsa_sample_ll$daly_total,
-                     icer_daly                 = owsa_sample_ll$icer_daly
+  icer_dt_owsa_ll [i, `:=` (icer_daly                 = owsa_sample_ll$icer_daly
   )]
   
 }
@@ -602,23 +537,7 @@ for (parameter in parameters_change) {
                          change            = -change          ) 
   
   
-  icer_dt_owsa_ul [i, `:=` ( totcost_unvacc         = owsa_sample_ul$totcost_unvacc,
-                          totcost_vacc              = owsa_sample_ul$totcost_vacc,
-                          incremental_cost          = owsa_sample_ul$incremental_cost,
-                          incremental_effect        = owsa_sample_ul$incremental_effect,
-                          icer                      = owsa_sample_ul$icer,
-                          prevacc                   = owsa_sample_ul$prevacc,
-                          temp_distance             = owsa_sample_ul$temp_distance,
-                          pre_death                 = owsa_sample_ul$pre_death,
-                          post_death                = owsa_sample_ul$post_death,
-                          yll_pre                   = owsa_sample_ul$yll_pre,
-                          yll_post                  = owsa_sample_ul$yll_post,
-                          yld_pre                   = owsa_sample_ul$yld_pre,
-                          yld_post                  = owsa_sample_ul$yld_post,
-                          yld_averted               = owsa_sample_ul$yld_averted,
-                          yll_averted               = owsa_sample_ul$yll_averted,
-                          daly_total                = owsa_sample_ul$daly_total,
-                          icer_daly                 = owsa_sample_ul$icer_daly
+  icer_dt_owsa_ul [i, `:=` (icer_daly                 = owsa_sample_ul$icer_daly
   )]
   
 }
@@ -664,4 +583,7 @@ for (parameter in parameters_change) {
   write_xlsx(merge_icers, "C:\\Users\\hyolim.kang\\OneDrive - International Vaccine Institute\\Documents\\GitHub\\CEA-project\\owsa1.xlsx ")
   
  
+require(lhs)
+h <- 500
+lhs <- maximinLHS(h, 18)
  

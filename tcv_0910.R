@@ -7,6 +7,7 @@
 # scenario analysis (how many scenarios?)
 # correction factor
 # any adjustments?
+# https://github.com/pierucci/heemod/blob/master/R/acceptability_curve.R
 
 
 # load libraries
@@ -173,6 +174,8 @@ create_psa_sample <- function (sample_n) {
 # Latin Hypercube Sampling
 # ------------------------------------------------------------------------------
 
+# https://stats.stackexchange.com/questions/495215/standard-error-standard-deviation-and-variance-confusion
+
 set.seed (3)
 runs <- 2000
 
@@ -183,7 +186,22 @@ A <- randomLHS (n = runs,
 # into other distributions
 # for gamma dist: a= shape (m^2/sigma^2), b= scale = 1/ (sigma^2/mean) 
 # (m is mean and sigma is SD)
-# for truncated norm dist: 
+# for beta dist function: 
+
+beta <- function(mu, var) {
+  alpha <- ((1 - mu) / var - 1 / mu) * mu ^ 2
+  beta <- alpha * (1 / mu - 1)
+  return(params = list(alpha = alpha, beta = beta))
+}
+# beta parameterization for VE
+beta(0.816,  0.01982924)
+# beta parameterization for DW
+beta(0.21, 0.0001)
+beta(0.052, 0.0001)
+# beta parameterization for CFR
+beta(0.028, 0.00007972)
+beta(0.019, 0.00001666)
+
 
 lhs_sample <- matrix (nrow = nrow(A), ncol = ncol(A))
 lhs_sample [,1]  <- 2.96
@@ -194,7 +212,7 @@ lhs_sample [,4]  <- 113420
 lhs_sample [,5]  <- 200
 lhs_sample [,6]  <- 459
 lhs_sample [,7]  <- 659
-lhs_sample [,8]  <- qgamma (p = A[,8], shape = ((97.33/12.53)^2), rate = (97.33/(12.33)^2), 
+lhs_sample [,8]  <- qgamma (p = A[,8], shape = ((97.33/12.33)^2), rate = (97.33/(12.33)^2), 
                             lower.tail = TRUE, log.p = FALSE)
 lhs_sample [,9]  <- qgamma (p = A[,9], shape = ((234.7688/265.9934)^2), rate = (234.7688/(265.9934)^2), 
                             lower.tail = TRUE, log.p = FALSE)
@@ -214,25 +232,18 @@ lhs_sample [,16] <- qgamma (p = A[,16],   shape = ((74.28838/26.90198)^2), rate 
                             lower.tail = TRUE, log.p = FALSE)
 lhs_sample [,17] <- qgamma (p = A[,17],  shape = ((76.13798/28.24641)^2),rate = (76.13798/(28.24641)^2), 
                             lower.tail = TRUE, log.p = FALSE)
-lhs_sample [,18] <- qtruncnorm (p = A[,18], a = 0.54 , b = 0.926 , mean = 0.81, sd = 0.14)
-
-# VE for beta distribution 
-#lhs_sample [,18] <- qbeta  (p = A[,18], shape1 = 0.1142857, shape2 = 0.02857143, ncp=0,lower.tail = TRUE, log.p = FALSE)
-lhs_sample [,19] <- qtruncnorm (p = A[,19], a = 0.19,  b = 0.23  , mean = 0.21, sd = 0.01) 
-lhs_sample [,20] <- qtruncnorm (p = A[,20], a = 0.031, b = 0.079 , mean = 0.052, sd = 0.01)
-
-
-
+lhs_sample [,18] <- qbeta  (p = A[,18], shape1 = 5.362628, shape2 = 1.20922, ncp=0,lower.tail = TRUE, log.p = FALSE)
+lhs_sample [,19] <- qbeta (p = A[,19], shape1 = 348.18, shape2 = 1309.82, ncp=0, lower.tail = TRUE, log.p = FALSE) 
+lhs_sample [,20] <- qbeta (p = A[,20], shape1 = 25.58192, shape2 = 466.3781, ncp = 0, lower.tail = TRUE, log.p = FALSE)
 lhs_sample [,21] <- qgamma (p = A[,21], shape = ((0.0404/0.01532)^2), rate = (0.04/(0.0153)^2), 
                             lower.tail = TRUE, log.p = FALSE)
 # mean = 0.040438356
 # sd = 0.015315068
 
-
 lhs_sample [,22] <- qgamma (p = A[,22], shape = ((0.04559688/ 0.02500143)^2), rate = (0.04559688/(0.02500143)^2), 
                             lower.tail = TRUE, log.p = FALSE)
-lhs_sample [,23] <- qtruncnorm (p = A[,23], a = 0.02, b = 0.036, mean = 0.028, sd = 0.00408)
-lhs_sample [,24] <- qtruncnorm (p = A[,24], a = 0.01, b = 0.045, mean = 0.019, sd = 0.00459)
+lhs_sample [,23] <- qbeta (p = A[,23], shape1 = 9.531057, shape2 = 330.8638, ncp = 0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample [,24] <- qbeta (p = A[,24], shape1 =  21.23796, shape2 = 1096.55, ncp = 0, lower.tail = TRUE, log.p = FALSE)
 lhs_sample [,25] <- qgamma (p = A[,25], shape = ((7.56/0.527)^2), rate = (7.56/(0.527)^2), 
                             lower.tail = TRUE, log.p = FALSE)
 lhs_sample [,26] <- qnorm (p = A[,26], mean = 72.68, sd = 1.73979, lower.tail = TRUE, log.p = FALSE)
@@ -535,7 +546,7 @@ lhs_sample <- as.data.table (lhs_sample)
   
 # central value
 
-mean_cost                   <- mean(icer_dt$incremental_cost_total)
+mean_incremental_cost       <- mean(icer_dt$incremental_cost_total)
 mean_case_averted           <- mean(icer_dt$case_averted_total)
 mean_prevacc                <- mean(icer_dt$prevacc)
 mean_icer_daly_ipd          <- mean(icer_dt$icer_daly_ipd)
@@ -544,7 +555,26 @@ mean_icer_daly_total        <- mean(icer_dt$icer_daly_total)
 mean_incremental_daly_total <- mean(icer_dt$incremental_daly_total)
 
 # icer plot 
+options(scipen=9999)
 plot ( x = icer_dt$incremental_daly_total, y =icer_dt$incremental_cost_total)
+
+# cea plane
+ggplot(data = icer_dt, aes(x=incremental_daly_total,
+                           y=incremental_cost_total))+
+  geom_point() +
+  xlim(-5000, 5000) + ylim(-4000000, 4000000) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  xlab("DALYs averted") +
+  ylab("Incremental cost") +
+  theme_bw()
+
+icer_dt_m <- icer_dt %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.5))
+icer_dt_l <- icer_dt_m %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.025))
+icer_dt_h <- icer_dt_l %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.975))
+
+# delta cost <0, delta effect >0: less costly and averted more dalys = new intervention dominates.
+icer_dt_cost_minus <- icer_dt %>% filter(incremental_cost_total <0)
 
 
 # ceac
@@ -554,7 +584,9 @@ print(quantile(icer_dt$icer_daly_total, c(.5 , .025, .975 )))
 
 # uncertainty ranges
 icer_ui <- quantile(icer_dt$icer_daly_total, probs = seq(0, 1, 0.025))
-icer_ui2 <- as.data.table(icer_ui)
+icer_ui <- as.data.table(icer_ui)
+# uncertainty interval table (icer)
+icer_ui$ui_interval <- seq(0, 100, 2.5)
 
 # cost
 cost_ui_unv <- quantile(icer_dt$totcost_unvacc, probs = seq(0, 1, 0.025))
@@ -634,27 +666,48 @@ inc_daly$ui_interval <- seq(0, 100, 2.5)
 daly_diff <- cbind(daly_ui_unv, daly_ui_vac,inc_daly)
 
 
-# uncertainty interval table (icer)
-icer_ui2$ui_interval <- seq(0, 100, 2.5)
 
 probability_cea <- seq(from=0, to= 1, by= .01)
+
+
 
 wtp<- quantile(icer_dt$icer_daly_total, probability_cea)
 
 wtp_dt <- as.data.table(wtp)
 
+
 wtp_prob <- cbind (wtp_dt, probability_cea)
 
-# keep only positive wtp values
+wtp_inv <- wtp_prob[order(-wtp),]
 
+wtp_inv <- wtp_prob[order(-wtp),]
+wtp_inv[, probability_cea :=NULL]
+wtp_inv <- cbind(wtp_inv, probability_cea)
+# wtp_inv <- wtp_inv %>% filter(wtp > 0)
+
+# keep only positive wtp values
 wtp_post <- wtp_prob %>% filter(wtp > 0)
+
 
 # ceac ggplot
 
-ceac <- ggplot(data = wtp_post, aes(x = wtp, y = probability_cea)) +
+ceac <- ggplot(data = wtp_prob, aes(x = wtp, y = probability_cea)) +
+  geom_line(color = 'darkblue') +
+  scale_x_continuous(expand = c(0,0)) +
+  scale_y_continuous(expand = c(0,0)) 
+ceac
+
+ceac_inv <-  ggplot(data = wtp_inv, aes(x = wtp, y = probability_cea)) +
   geom_line(color = 'darkblue') +
   scale_x_continuous(expand = c(0,0)) +
   scale_y_continuous(expand = c(0,0))
+ceac_inv
+
+ceac_base <- ggplot(NULL, aes(x = wtp, y = probability_cea)) +
+  geom_line(data = wtp_prob, col = 'red') +
+  geom_line(data = wtp_inv, col = 'blue') +
+  theme_bw()
+ceac_base
 
 # ------------------------------------------------------------------------------
 # scenario analysis (phase 2)
@@ -671,17 +724,7 @@ A <- randomLHS (n = runs,
 # It is common to transform the margins of the design (the columns) 
 # into other distributions
 # for gamma dist: a= shape (m^2/se^2), b= rate (se^2/m)
-# for truncated norm dist: 
-# for beta dist function: 
 
-  beta <- function(mu, var) {
-  alpha <- ((1 - mu) / var - 1 / mu) * mu ^ 2
-  beta <- alpha * (1 / mu - 1)
-  return(params = list(alpha = alpha, beta = beta))
-}
-
-  beta(0.8, 0.14)
-  
 
 
 lhs_sample_s <- matrix (nrow = nrow(A), ncol = ncol(A))
@@ -695,36 +738,35 @@ lhs_sample_s [,6]  <- 1140
 lhs_sample_s [,7]  <- 1598
 lhs_sample_s [,8]  <- qgamma (p = A[,8], shape = ((97.33/12.33)^2), rate = (97.33/(12.33)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,9]  <- qgamma (p = A[,9], shape = ((234.77/265.99)^2), rate = (234.77/(265.99)^2), 
+lhs_sample_s [,9]  <- qgamma (p = A[,9], shape = ((234.7688/265.9934)^2), rate = (234.7688/(265.9934)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,10] <- qgamma (p = A[,10], shape = ((115.38/149.92)^2), rate = (115.38/(149.92)^2), 
+lhs_sample_s [,10] <- qgamma (p = A[,10], shape = ((115.3841/149.9214)^2), rate = (115.3841/(149.9214)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,11] <- qgamma (p = A[,11], shape = ((183.34/229.85)^2), rate = (183.34/(229.85)^2), 
+lhs_sample_s [,11] <- qgamma (p = A[,11], shape = ((183.3415/229.8478)^2), rate = (183.3415/(229.8478)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,12] <- qgamma (p = A[,12], shape = ((48.59/37.40)^2), rate = (48.59/(37.40)^2), 
+lhs_sample_s [,12] <- qgamma (p = A[,12], shape = ((48.58656/37.39749)^2), rate = (48.58656/(37.39749)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,13] <- qgamma (p = A[,13],  shape = ((21.49/25.90)^2), rate = (21.49/(25.90)^2), 
+lhs_sample_s [,13] <- qgamma (p = A[,13],  shape = ((21.48999/25.8971)^2), rate = (21.48999/(25.8971)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,14] <- qgamma (p = A[,14],  shape = ((36.91/35.39)^2), rate = (36.91/(35.39)^2), 
+lhs_sample_s [,14] <- qgamma (p = A[,14],  shape = ((36.91419/35.39041)^2), rate = (36.91419/(35.39041)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,15] <- qgamma (p = A[,15],  shape = ((77.54/29.51)^2), rate = (77.54/(29.51)^2), 
+lhs_sample_s [,15] <- qgamma (p = A[,15],  shape = ((77.53769/29.51196)^2), rate = (77.53769/(29.51196)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,16] <- qgamma (p = A[,16],   shape = ((74.29/26.90)^2), rate = (74.29/(26.90)^2), 
+lhs_sample_s [,16] <- qgamma (p = A[,16],   shape = ((74.28838/26.90198)^2), rate = (74.28838/(26.90198)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,17] <- qgamma (p = A[,17],  shape = ((76.13/28.25)^2), rate = (76.13/(28.25)^2), 
+lhs_sample_s [,17] <- qgamma (p = A[,17],  shape = ((76.13798/28.24641)^2), rate = (76.13798/(28.24641)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,18] <- qtruncnorm (p = A[,18], a = 0.54 , b = 0.926 , mean = 0.81, sd = 0.14)
-
 # VE for beta distribution 
-#lhs_sample_s [,18] <- qbeta  (p = A[,18], shape1 = 0.1142857 , shape2 =  0.02857143, ncp=0, lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,19] <- qtruncnorm (p = A[,19], a = 0.19,  b = 0.23  , mean = 0.21, sd = 0.01) 
-lhs_sample_s [,20] <- qtruncnorm (p = A[,20], a = 0.031, b = 0.079 , mean = 0.052, sd = 0.01)
-lhs_sample_s [,21] <- qgamma (p = A[,21], shape = ((0.04/0.153)^2), rate = (0.04/(0.153)^2), 
+lhs_sample_s [,18] <- qbeta  (p = A[,18], shape1 =  5.362628 , shape2 = 1.20922, ncp=0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,19] <- qbeta  (p = A[,19], shape1 =  348.18, shape2 = 1309.82, ncp=0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,20] <- qbeta  (p = A[,20], shape1 =  25.58192, shape2 = 466.3781, ncp=0, lower.tail = TRUE, log.p = FALSE)
+
+lhs_sample_s [,21] <- qgamma (p = A[,21], shape = ((0.0404/0.1532)^2), rate = (0.0404/(0.1532)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,22] <- qgamma (p = A[,22], shape = ((0.046/0.025)^2), rate = (0.046/(0.025)^2), 
+lhs_sample_s [,22] <- qgamma (p = A[,22], shape = ((0.04559688/0.02500143)^2), rate = (0.04559688/(0.02500143)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,23] <- qtruncnorm (p = A[,23], a = 0.02, b = 0.036, mean = 0.028, sd = 0.00408)
-lhs_sample_s [,24] <- qtruncnorm (p = A[,24], a = 0.01, b = 0.045, mean = 0.019, sd = 0.00459)
+lhs_sample_s [,23] <- qbeta  (p = A[,23], shape1 =  9.531057, shape2 = 330.8638, ncp=0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,24] <- qbeta  (p = A[,24], shape1 =  21.23796, shape2 = 1096.55, ncp=0, lower.tail = TRUE, log.p = FALSE)
 lhs_sample_s [,25] <- qgamma (p = A[,25], shape = ((7.56/0.527)^2), rate = (7.56/(0.527)^2), 
                               lower.tail = TRUE, log.p = FALSE)
 lhs_sample_s [,26] <- qnorm (p = A[,26], mean = 72.68, sd = 1.740, lower.tail = TRUE, log.p = FALSE)
@@ -1035,8 +1077,16 @@ mean_icer_daly_opd          <- mean(icer_dt_s$icer_daly_opd)
 mean_icer_daly_total        <- mean(icer_dt_s$icer_daly_total)
 mean_incremental_daly_total <- mean(icer_dt_s$incremental_daly_total)
 
-# icer plot 
-plot ( x = icer_dt_s$incremental_daly_total, y =icer_dt_s$incremental_cost_total)
+# cea plane
+ggplot(data = icer_dt_s, aes(x=incremental_daly_total,
+                           y=incremental_cost_total))+
+  geom_point() +
+  xlim(-5000, 5000) + ylim(-4000000, 4000000) +
+  geom_hline(yintercept = 0) +
+  geom_vline(xintercept = 0) +
+  xlab("DALYs averted") +
+  ylab("Incremental cost") +
+  theme_bw()
 
 
 # uncertainty ranges
@@ -1156,7 +1206,7 @@ wtp_post_scenario <- wtp_prob_scenario %>% filter(wtp_scenario > 0)
   geom_line(data = wtp_post_scenario, aes(x = wtp_scenario, y = probability_cea), 
             color = "red") +
   scale_x_continuous(expand = c(0,0),
-                     breaks = seq(0, 3000, by = 200)) +
+                     breaks = seq(0, 10000, by = 500)) +
   scale_y_continuous(expand = c(0,0)) +
   xlab('WTP at DALYs averted (USD)') +
   ylab('probability (%)') +
@@ -1365,30 +1415,29 @@ tornado_param_all  <- rbind (tornado_param_low, tornado_param_mid, tornado_param
   
 # initialise parameter data table
   param <- data.frame (v_cost               = c (mid = 2.96,   low = 2.96,   high = 2.96), 
-                       delivery_cost        = c (mid = 1.489151,   low = 0.246,  high = 4.752),
+                       delivery_cost        = c (mid = 1.489151,   low = 1.372637,  high = 1.611899),
                        tot_pop              = c (mid = 159831, low = 159831, high = 159831),
                        vacc_pop             = c (mid = 113420, low = 113420, high = 113420),
                        postvacc_p1_ipd      = c (mid = 200,     low = 200,     high = 200),
                        postvacc_p1_opd      = c (mid = 459,     low = 459,     high = 459),
                        postvacc_p1          = c (mid = 659,     low = 659,     high = 659),
-                       facility_cost        = c (mid = 97.33,  low = 72.05578, high = 119.42376 ),
+                       facility_cost        = c (mid = 93.72781,  low = 72.05578, high = 119.42376 ),
                        dmc_ipd              = c (mid = 145.085922, low = 2.443228, high = 963.940431),
                        dmc_opd              = c (mid = 60.1547144, low = 0.3206837, high = 535.8029029),
                        dmc                  = c (mid = 100.4446615, low = 0.7537101, high = 822.2790403 ),
                        dnmc_ipd             = c (mid = 39.421173,  low = 4.440873,  high = 144.388621), 
                        dnmc_opd             = c (mid = 12.3908994,  low = 0.1278219,  high = 93.308175), 
                        dnmc                 = c (mid = 26.416384,  low = 1.219572,  high = 130.697268), 
-                       indirect_ipd         = c (mid =73.83249,  low = 31.05202, high = 144.91829),
+                       indirect_ipd         = c (mid = 73.83249,  low = 31.05202, high = 144.91829),
                        indirect_opd         = c (mid = 71.07460,  low = 31.30255, high = 135.47818),
                        indirect             = c (mid = 72.67934,  low = 31.25501, high = 140.55149),
-                       ve                   = c (mid = 0.7787157,   low = 0.5745949,   high = 0.9165848), 
-                       dw_ipd               = c (mid = 0.2099958,  low =0.1932147,  high = 0.2267590),
-                       dw_opd               = c (mid = 0.052,  low =0.03475859,  high = 0.07108077),
-                       dw                   = c (mid = 0.05218003,  low =0.03475859,  high = 0.07108077),
+                       ve                   = c (mid = 0.8285294,   low = 0.4651203,   high = 0.9841985), 
+                       dw_ipd               = c (mid = 0.2099958,  low =0.1907379,  high = 0.2298767),
+                       dw_opd               = c (mid = 0.05139319,  low =0.03475859,  high = 0.07320066),
                        illness_duration_ipd = c (mid = 1.362,  low = 1.30890, high = 4.3047),
                        illness_duration_opd = c (mid = 0.04154,  low = 0.010775, high = 0.106362),
-                       cfr_ipd              = c (mid = 0.028000,  low = 0.0212434,  high = 0.03475478),
-                       cfr_opd              = c (mid = 0.01914254,  low =0.0114205,  high = 0.02803798),
+                       cfr_ipd              = c (mid = 0.02780828,  low = 0.02057399,  high = 0.03651082),
+                       cfr_opd              = c (mid = 0.01863717,  low = 0.01107713,  high = 0.02896699),
                        age_death            = c (mid = 7.547850,    low = 6.562944,  high = 8.624685),
                        life_exp             = c (mid = 72.67957,  low = 69.27136, high = 76.08917) )
 
