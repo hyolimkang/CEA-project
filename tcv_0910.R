@@ -652,15 +652,16 @@ options(scipen=9999)
 plot ( x = icer_dt$incremental_daly_total, y =icer_dt$incremental_cost_total)
 
 # cea plane
-ggplot(data = icer_dt, aes(x=incremental_daly_total,
-                           y=incremental_cost_total))+
+cea_plane <- ggplot(data = icer_dt, aes(x=incremental_daly_total,
+                                        y=incremental_cost_total))+
   geom_point() +
-  xlim(-5000, 5000) + ylim(-4000000, 4000000) +
+  xlim(-5000, 5000) + ylim(-5000000, 5000000) +
   geom_hline(yintercept = 0) +
   geom_vline(xintercept = 0) +
   xlab("DALYs averted") +
   ylab("Incremental cost") +
   theme_bw()
+cea_plane
 
 # icer (cost-per-DALY averted) median 50% value
 icer_dt_m <- icer_dt %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.5))
@@ -672,6 +673,7 @@ icer_dt_l <- icer_dt_m %>% mutate (icer_daly_total, quantile(icer_daly_total, pr
 icer_dt_h <- icer_dt_l %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.975))
 
 # delta cost <0, delta effect >0: less costly and averted more dalys = new intervention dominates.
+# more effective and cost saving: intervention dominated for 2275/4000 = 56.8%
 icer_dt_cost_minus <- icer_dt %>% filter(incremental_cost_total <0)
 
 
