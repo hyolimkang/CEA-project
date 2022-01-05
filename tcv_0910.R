@@ -177,7 +177,7 @@ create_psa_sample <- function (sample_n) {
 # https://stats.stackexchange.com/questions/495215/standard-error-standard-deviation-and-variance-confusion
 
 set.seed (3)
-runs <- 8000
+runs <- 4000
 
 # a design with n samples from k parameters
 A <- randomLHS (n = runs, 
@@ -235,7 +235,7 @@ lhs_sample [,17] <- qgamma (p = A[,17],  shape = ((76.13798/28.24641)^2),rate = 
 lhs_sample [,18] <- qbeta  (p = A[,18], shape1 = 5.362628, shape2 = 1.20922, ncp=0,lower.tail = TRUE, log.p = FALSE)
 lhs_sample [,19] <- qbeta (p = A[,19], shape1 = 348.18, shape2 = 1309.82, ncp=0, lower.tail = TRUE, log.p = FALSE) 
 lhs_sample [,20] <- qbeta (p = A[,20], shape1 = 25.58192, shape2 = 466.3781, ncp = 0, lower.tail = TRUE, log.p = FALSE)
-lhs_sample [,21] <- qgamma (p = A[,21], shape = ((0.0404/0.01532)^2), rate = (0.04/(0.0153)^2), 
+lhs_sample [,21] <- qgamma (p = A[,21], shape = ((0.0404/0.01532)^2), rate = (0.0404/(0.01532)^2), 
                             lower.tail = TRUE, log.p = FALSE)
 # mean = 0.040438356
 # sd = 0.015315068
@@ -334,7 +334,7 @@ lhs_sample <- as.data.table (lhs_sample)
     
     # total cost of pre-vaccination typhoid cases
     
-    totcost_unvacc         <- (prevacc)*(facility_cost + dmc + dnmc + indirect)
+    totcost_unvacc         <- (prevacc_ipd)* (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd) + (prevacc_opd)*( facility_cost + dmc_opd + dnmc_opd + indirect_opd)
     
     # incremental cost of inpatients 
     
@@ -502,7 +502,7 @@ lhs_sample <- as.data.table (lhs_sample)
     
     # total DALYs averted (used for final ICER value in the paper: delta E as a denominator)
     
-    incremental_daly_total <- (yll_averted_total) + (yld_averted_total)
+    incremental_daly_total <- (dalys_pre_total) - (dalys_post_total) 
     
     # ICER for inpatients presented as cost-per-DALY averted
     
@@ -655,7 +655,7 @@ plot ( x = icer_dt$incremental_daly_total, y =icer_dt$incremental_cost_total)
 cea_plane <- ggplot(data = icer_dt, aes(x=incremental_daly_total,
                                         y=incremental_cost_total))+
   geom_point() +
-  xlim(-5000, 5000) + ylim(-5000000, 5000000) +
+  xlim(-5000, 5000) + ylim(-6000000, 6000000) +
   geom_hline(yintercept = 0) +
   geom_vline(xintercept = 0) +
   xlab("DALYs averted") +
@@ -673,9 +673,8 @@ icer_dt_l <- icer_dt_m %>% mutate (icer_daly_total, quantile(icer_daly_total, pr
 icer_dt_h <- icer_dt_l %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.975))
 
 # delta cost <0, delta effect >0: less costly and averted more dalys = new intervention dominates.
-# more effective and cost saving: intervention dominated for 2275/4000 = 56.8%
+# more effective and cost saving: intervention dominated for 659/4000
 icer_dt_cost_minus <- icer_dt %>% filter(incremental_cost_total <0)
-
 
 # ceac
 
@@ -696,9 +695,13 @@ cost_ui_vac <- as.data.table(cost_ui_vac)
 cost_ui_unv$ui_interval <- seq(0, 100, 2.5)
 cost_ui_vac$ui_interval <- seq(0, 100, 2.5)
 # case (prevacc)
-case_ui_unv <- quantile(icer_dt$prevacc, probs = seq(0, 1, 0.025))
-case_ui_unv <- as.data.table(case_ui_unv)
-case_ui_unv$ui_interval <- seq(0, 100, 2.5)
+case_ipd_unv <- quantile(icer_dt$prevacc_ipd, probs = seq(0, 1, 0.025))
+case_ipd_unv <- as.data.table(case_ipd_unv)
+case_ipd_unv$ui_interval <- seq(0, 100, 2.5)
+case_opd_unv <-  quantile(icer_dt$prevacc_opd, probs = seq(0, 1, 0.025))
+case_opd_unv <- as.data.table(case_opd_unv)
+case_opd_unv$ui_interval <- seq(0, 100, 2.5)
+
 # case (difference)
 case_avert <- quantile(icer_dt$case_averted_total,probs = seq(0, 1, 0.025))
 case_avert <- as.data.table(case_avert)
@@ -783,11 +786,25 @@ wtp_post <- wtp_prob %>% filter(wtp > 0)
 # ceac ggplot
 
 ceac <- ggplot(data = wtp_post, aes(x = wtp, y = probability_cea)) +
-  geom_line(color = 'darkblue') +
+  geom_line(color = 'black') +
   scale_x_continuous(expand = c(0,0)) +
   scale_y_continuous(expand = c(0,0)) +
+  xlab("Willingenss to pay") +
+  ylab("Probability of cost-effectiveness") +
   theme_bw()
 ceac
+
+# opportunity costs lines 
+
+vertDf <- data.frame(wtp = c(166, 279, 2191), labels = c("lower-bound", "upper-bound", "GDP per capita 2021"))
+
+# add two graphs 
+
+ceac + geom_vline(aes(xintercept = wtp, color = labels), data = vertDf, show.legend=T) +
+  scale_colour_manual("WTP", values = c("lower-bound" = "blue", "upper-bound" = "red", "GDP per capita 2021" = "green")) +
+  theme_bw() +
+  theme(legend.position = c(0.95, 0.95),
+        legend.justification = c("right", "top"))
 
 # ------------------------------------------------------------------------------
 # scenario analysis (phase 2)
@@ -795,12 +812,12 @@ ceac
 # Latin Hypercube Sampling
 # ------------------------------------------------------------------------------
 
-set.seed (3)
+set.seed (20)
 runs <- 4000
 
 # a design with n samples from k parameters
 A <- randomLHS (n = runs, 
-                k = 26) 
+                k = 29) 
 # It is common to transform the margins of the design (the columns) 
 # into other distributions
 # for gamma dist: a= shape (m^2/se^2), b= rate (se^2/m)
@@ -809,58 +826,64 @@ lhs_sample_s <- matrix (nrow = nrow(A), ncol = ncol(A))
 lhs_sample_s [,1]  <- 2.96
 lhs_sample_s [,2]  <- qgamma (p = A[,2], shape = ((1.49/0.0612)^2), rate = (1.49/(0.0612)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,3]  <- 331418
-lhs_sample_s [,4]  <- 113420
-lhs_sample_s [,5]  <- 458
-lhs_sample_s [,6]  <- 1140
-lhs_sample_s [,7]  <- 1598
-lhs_sample_s [,8]  <- qgamma (p = A[,8], shape = ((97.33/12.33)^2), rate = (97.33/(12.33)^2), 
+lhs_sample_s [,3]  <- 159831
+lhs_sample_s [,4]  <- 171587
+lhs_sample_s [,5]  <- 331418
+lhs_sample_s [,6]  <- 113420
+lhs_sample_s [,7]  <- 199.1143
+lhs_sample_s [,8]  <- 458.0286
+lhs_sample_s [,9]  <- 258.3333
+lhs_sample_s [,10] <- 681.061
+lhs_sample_s [,11]  <- qgamma (p = A[,11], shape = ((97.33/12.33)^2), rate = (97.33/(12.33)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,9]  <- qgamma (p = A[,9], shape = ((234.7688/265.9934)^2), rate = (234.7688/(265.9934)^2), 
+lhs_sample_s [,12]  <- qgamma (p = A[,12], shape = ((234.7688/265.9934)^2), rate = (234.7688/(265.9934)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,10] <- qgamma (p = A[,10], shape = ((115.3841/149.9214)^2), rate = (115.3841/(149.9214)^2), 
+lhs_sample_s [,13] <- qgamma (p = A[,13], shape = ((115.3841/149.9214)^2), rate = (115.3841/(149.9214)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,11] <- qgamma (p = A[,11], shape = ((183.3415/229.8478)^2), rate = (183.3415/(229.8478)^2), 
+lhs_sample_s [,14] <- qgamma (p = A[,14], shape = ((183.3415/229.8478)^2), rate = (183.3415/(229.8478)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,12] <- qgamma (p = A[,12], shape = ((48.58656/37.39749)^2), rate = (48.58656/(37.39749)^2), 
+lhs_sample_s [,15] <- qgamma (p = A[,15], shape = ((48.58656/37.39749)^2), rate = (48.58656/(37.39749)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,13] <- qgamma (p = A[,13],  shape = ((21.48999/25.8971)^2), rate = (21.48999/(25.8971)^2), 
+lhs_sample_s [,16] <- qgamma (p = A[,16],  shape = ((21.48999/25.8971)^2), rate = (21.48999/(25.8971)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,14] <- qgamma (p = A[,14],  shape = ((36.91419/35.39041)^2), rate = (36.91419/(35.39041)^2), 
+lhs_sample_s [,17] <- qgamma (p = A[,17],  shape = ((36.91419/35.39041)^2), rate = (36.91419/(35.39041)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,15] <- qgamma (p = A[,15],  shape = ((77.53769/29.51196)^2), rate = (77.53769/(29.51196)^2), 
+lhs_sample_s [,18] <- qgamma (p = A[,18],  shape = ((77.53769/29.51196)^2), rate = (77.53769/(29.51196)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,16] <- qgamma (p = A[,16],   shape = ((74.28838/26.90198)^2), rate = (74.28838/(26.90198)^2), 
+lhs_sample_s [,19] <- qgamma (p = A[,19],   shape = ((74.28838/26.90198)^2), rate = (74.28838/(26.90198)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,17] <- qgamma (p = A[,17],  shape = ((76.13798/28.24641)^2), rate = (76.13798/(28.24641)^2), 
+lhs_sample_s [,20] <- qgamma (p = A[,20],  shape = ((76.13798/28.24641)^2), rate = (76.13798/(28.24641)^2), 
                               lower.tail = TRUE, log.p = FALSE)
 # VE for beta distribution 
-lhs_sample_s [,18] <- qbeta  (p = A[,18], shape1 =  5.362628 , shape2 = 1.20922, ncp=0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,21] <- qbeta  (p = A[,21], shape1 =  5.362628 , shape2 = 1.20922, ncp=0, lower.tail = TRUE, log.p = FALSE)
 # DW (ipd) for beta dist
-lhs_sample_s [,19] <- qbeta  (p = A[,19], shape1 =  348.18, shape2 = 1309.82, ncp=0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,22] <- qbeta  (p = A[,22], shape1 =  348.18, shape2 = 1309.82, ncp=0, lower.tail = TRUE, log.p = FALSE)
 # DW (opd) for beta dist
-lhs_sample_s [,20] <- qbeta  (p = A[,20], shape1 =  25.58192, shape2 = 466.3781, ncp=0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,23] <- qbeta  (p = A[,23], shape1 =  25.58192, shape2 = 466.3781, ncp=0, lower.tail = TRUE, log.p = FALSE)
 
-lhs_sample_s [,21] <- qgamma (p = A[,21], shape = ((0.0404/0.1532)^2), rate = (0.0404/(0.1532)^2), 
+lhs_sample_s [,24] <- qgamma (p = A[,24], shape = ((0.0404/0.1532)^2), rate = (0.0404/(0.1532)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,22] <- qgamma (p = A[,22], shape = ((0.04559688/0.02500143)^2), rate = (0.04559688/(0.02500143)^2), 
+lhs_sample_s [,25] <- qgamma (p = A[,25], shape = ((0.04559688/0.02500143)^2), rate = (0.04559688/(0.02500143)^2), 
                               lower.tail = TRUE, log.p = FALSE)
 # CFR (ipd) for beta dists
-lhs_sample_s [,23] <- qbeta  (p = A[,23], shape1 =  9.531057, shape2 = 330.8638, ncp=0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,26] <- qbeta  (p = A[,26], shape1 =  9.531057, shape2 = 330.8638, ncp=0, lower.tail = TRUE, log.p = FALSE)
 # CFR (opd) for beta dists
-lhs_sample_s [,24] <- qbeta  (p = A[,24], shape1 =  21.23796, shape2 = 1096.55, ncp=0, lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,25] <- qgamma (p = A[,25], shape = ((7.56/0.527)^2), rate = (7.56/(0.527)^2), 
+lhs_sample_s [,27] <- qbeta  (p = A[,27], shape1 =  21.23796, shape2 = 1096.55, ncp=0, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,28] <- qgamma (p = A[,28], shape = ((7.56/0.527)^2), rate = (7.56/(0.527)^2), 
                               lower.tail = TRUE, log.p = FALSE)
-lhs_sample_s [,26] <- qnorm (p = A[,26], mean = 72.68, sd = 1.740, lower.tail = TRUE, log.p = FALSE)
+lhs_sample_s [,29] <- qnorm (p = A[,29], mean = 72.68, sd = 1.740, lower.tail = TRUE, log.p = FALSE)
 
 # change the name of the lhs_sample
 cols <- c(  "v_cost", 
             "delivery_cost",    
-            "tot_pop",            
+            "tot_pop_p1",
+            "tot_pop_p2",
+            "tot_pop",
             "vacc_pop",             
             "postvacc_p1_ipd",      
             "postvacc_p1_opd",     
-            "postvacc_p1",          
+            "prevacc_p2_ipd",
+            "prevacc_p2_opd",
             "facility_cost",        
             "dmc_ipd",              
             "dmc_opd",         
@@ -888,11 +911,14 @@ lhs_sample_s <- as.data.table (lhs_sample_s)
 
 icer_scenario <- function (v_cost            = 2.96,
                            delivery_cost,
+                           tot_pop_p1        = 159831,
+                           tot_pop_p2        = 171587,
                            tot_pop           = 331418,
                            vacc_pop          = 113420,
-                           postvacc_p1_ipd   = 458,
-                           postvacc_p1_opd   = 1140,
-                           postvacc_p1       = 1598,
+                           postvacc_p1_ipd   = 199.1143,
+                           postvacc_p1_opd   = 458.0286 ,
+                           prevacc_p2_ipd    = 258.3333,
+                           prevacc_p2_opd    = 681.061,
                            facility_cost,
                            dmc_ipd,
                            dmc_opd,
@@ -913,65 +939,88 @@ icer_scenario <- function (v_cost            = 2.96,
                            age_death,
                            life_exp) {
   
-  # total cost for inpatients (vaccinated)
+
+  # pre-vacc burden in phase 1 (when phase 1 only)
   
-  totcost_vacc_ipd       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd)
+  prevacc_p1             <- (postvacc_p1_ipd + postvacc_p1_opd) / (1- ve*(vacc_pop/tot_pop_p1))
   
-  # total cost for outpatiens (vaccinated)
+  # total post-vacc burden in phase1 (Scenario: when vaccine spread out)
   
-  totcost_vacc_opd       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
+  postvacc_p1_sc         <- (prevacc_p1)*(1-ve*((tot_pop_p1/tot_pop)*vacc_pop/tot_pop_p1))
   
-  # total cost of vaccinated population
+  # IPD post-vacc burden in phase1 (Scenario: when vaccine spread out)
   
-  totcost_vacc_tot       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
+  postvacc_p1_ipd_sc     <- (prevacc_p1)*(1-ve*((tot_pop_p1/tot_pop)*vacc_pop/tot_pop_p1))* 0.303
   
-  # number of pre-vaccination typhoid case retrospectively calculated (inpatients)
+  # OPD post-vacc burden in phase1 (Scenario: when vaccine spread out)
   
-  prevacc_ipd            <- (postvacc_p1_ipd)/(1-ve*(vacc_pop/tot_pop))
+  postvacc_p1_opd_sc     <- (prevacc_p1)*(1-ve*((tot_pop_p1/tot_pop)*vacc_pop/tot_pop_p1))* (1-0.303)
   
-  # number of pre-vaccination typhoid case retrospectively calculated (outpatients)
+  # post burden in phase2 (when vaccine spread out)
   
-  prevacc_opd            <- (postvacc_p1_opd)/(1-ve*(vacc_pop/tot_pop))
+  postvacc_p2_sc         <-  (prevacc_p2_ipd + prevacc_p2_opd)*(1-ve*((tot_pop_p2/tot_pop)*vacc_pop/tot_pop_p2))
   
-  # total number of pre-vaccination cases (inpatients + outpatients)
+  # IPD post-vacc burden in phase2 (Scenario: when vaccine spread out)
   
-  prevacc                <- (prevacc_ipd)  + (prevacc_opd)
+  postvacc_p2_ipd_sc     <- (postvacc_p2_sc)* 0.275 
   
-  # total cost of pre-vaccination typhoid cases
+  # OPD post-vacc burden in phase2 (Scenario: when vaccine spread out)
   
-  totcost_unvacc         <- (prevacc)*(facility_cost + dmc + dnmc + indirect)
+  postvacc_p2_opd_sc     <- (postvacc_p2_sc)* (1-0.275) 
   
-  # incremental cost of inpatients 
+
+  # prevacc burden in phase 2 (when spread out)
   
-  incremental_cost_ipd   <- (totcost_vacc_ipd) - (totcost_unvacc)
+  prevacc_p2             <- (postvacc_p2_ipd_sc + postvacc_p2_opd_sc)/(1-ve*((tot_pop_p2/tot_pop)*vacc_pop/tot_pop_p2))
   
-  # incremental cost of outpatients
   
-  incremental_cost_opd   <- (totcost_vacc_opd) - (totcost_unvacc)
+  # total post-vacc cases (when spread out)
   
+  postvacc_tot_sc        <-  (postvacc_p1_ipd_sc + postvacc_p1_opd_sc + postvacc_p2_ipd_sc + postvacc_p2_opd_sc)
+  
+  # total IPD post-vacc cases (when spread out)
+  
+  postvacc_tot_ipd       <-  (postvacc_tot_sc)* ((0.303 + 0.275)/2)
+  
+  # total OPD post-vacc cases (when spread out)
+  
+  postvacc_tot_opd       <-  (postvacc_tot_sc)* (1 - 0.289)
+  
+  # total pre-vacc cases (when spread out)
+  
+  prevacc_tot_sc        <- (postvacc_tot_sc) / (1- ve*({(tot_pop_p1/tot_pop)*vacc_pop + (tot_pop_p2/tot_pop)*vacc_pop}/tot_pop))
+  
+  # total IPD pre-vacc (when spread out) --> (Average IPD rate of Phase 1 and 2)
+
+  prevacc_tot_ipd       <- (prevacc_tot_sc) * ((0.303 + 0.275)/2)  
+  
+  # total OPD pre-vacc (when spread out) --> (1 - average IPD rate of Phase 1 and 2) 
+  
+  prevacc_tot_opd      <- (prevacc_tot_sc) * (1 - 0.289)
+  
+  # total cost of pre-vaccination typhoid cases (when spread out)
+  
+  totcost_unvacc         <- (prevacc_tot_sc)* (facility_cost + dmc + dnmc+ indirect)
+  
+  # total cost of post-vaccinated population (when spread out) --> when spread out, the inpatient, outpatient cases are uncertain due to different hospitalization rate. therefore, total number and average costs were used
+  
+  totcost_vacc_tot       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_tot_sc) * (facility_cost + dmc + dnmc + indirect)
+
   # incremental cost total (used for the final value as a delta C)
   
   incremental_cost_total <- (totcost_vacc_tot) - (totcost_unvacc)
   
   # averted inpatient cases
   
-  case_averted_ipd       <- (prevacc_ipd)      - (postvacc_p1_ipd)
+  case_averted_ipd       <- (prevacc_tot_ipd) - (postvacc_tot_ipd)
   
   # averted outpatient cases
   
-  case_averted_opd       <- (prevacc_opd)      - (postvacc_p1_opd)
+  case_averted_opd       <- (prevacc_tot_sc)      - (postvacc_tot_opd)
   
   # total averted cases 
   
-  case_averted_total     <- (case_averted_ipd) + (case_averted_opd)
-  
-  # icer of inpatients in terms of cost per case averted (not used in the paper)
-  
-  icer_ipd               <- incremental_cost_ipd / case_averted_ipd
-  
-  # icer of outpatients in terms of cost per case averted (not used in the paper)
-  
-  icer_opd               <- incremental_cost_opd / case_averted_opd
+  case_averted_total     <- (prevacc_tot_sc) - (postvacc_tot_sc)
   
   # total incremental cost in terms of cost per case averted (not used in the paper)
   
@@ -983,23 +1032,23 @@ icer_scenario <- function (v_cost            = 2.96,
   
   # number of deaths in no-vaccination situation (inpatients)
   
-  pre_death_ipd          <- (cfr_ipd)*(prevacc_ipd)
+  pre_death_ipd          <- (cfr_ipd)*(prevacc_tot_ipd)
   
   # number of deaths in no-vaccination situation (outpatients)
   
-  pre_death_opd          <- (cfr_opd)*(prevacc_opd)
+  pre_death_opd          <- (cfr_opd)*(prevacc_tot_opd)
   
   # number of deaths in no-vaccination situation (total)
   
-  pre_death_total        <- (pre_death_ipd) + (pre_death_opd)
+  pre_death_total        <- (pre_death_ipd) + (pre_death_opd) 
   
   # number of deaths post-vaccination situation (inpatients)
   
-  post_death_ipd         <- (cfr_ipd)*(postvacc_p1_ipd)
+  post_death_ipd         <- (cfr_ipd)*(postvacc_tot_ipd)
   
   # number of deaths post-vaccination situation (outpatients)
   
-  post_death_opd         <- (cfr_opd)*(postvacc_p1_opd)
+  post_death_opd         <- (cfr_opd)*(postvacc_tot_opd)
   
   # number of deaths post-vaccination situation (total)
   
@@ -1043,11 +1092,11 @@ icer_scenario <- function (v_cost            = 2.96,
   
   # years of life with disease for inpatients in pre-vacc situation (number of inpatient cases * disability weight * total illness duration presented as years)
   
-  yld_pre_ipd            <- (prevacc_ipd)*(dw_ipd)*(illness_duration_ipd)
+  yld_pre_ipd            <- (prevacc_tot_ipd)*(dw_ipd)*(illness_duration_ipd)
 
   # years of life with disease for outpatients in pre-vacc situation (number of outpatient cases * disability weight * total illness duration presented as years)
   
-  yld_pre_opd            <- (prevacc_opd)*(dw_opd)*(illness_duration_opd)
+  yld_pre_opd            <- (prevacc_tot_opd)*(dw_opd)*(illness_duration_opd)
   
   # total YLD of pre-vaccination typhoid cases
   
@@ -1059,11 +1108,11 @@ icer_scenario <- function (v_cost            = 2.96,
   
   # years of life with disease for inpatients in post-vacc situation (number of inpatient cases * disability weight * total illness duration presented as years)
   
-  yld_post_ipd           <- (postvacc_p1_ipd)*(dw_ipd)*(illness_duration_ipd)
+  yld_post_ipd           <- (postvacc_tot_ipd)*(dw_ipd)*(illness_duration_ipd)
   
   # years of life with disease for outpatients in post-vacc situation (number of outpatient cases * disability weight * total illness duration presented as years)
   
-  yld_post_opd           <- (postvacc_p1_opd)*(dw_opd)*(illness_duration_opd)
+  yld_post_opd           <- (postvacc_tot_opd)*(dw_opd)*(illness_duration_opd)
   
   # total YLD for post-vaccination typhoid cases (YLL total + YLD total)
   
@@ -1075,11 +1124,11 @@ icer_scenario <- function (v_cost            = 2.96,
   
   # YLD averted for inpatients
   
-  yld_averted_ipd        <- (prevacc_ipd - postvacc_p1_ipd)* (dw_ipd) *(illness_duration_ipd)
+  yld_averted_ipd        <- (prevacc_tot_ipd - postvacc_tot_ipd)* (dw_ipd) *(illness_duration_ipd)
   
   # YLD averted for outpatients
   
-  yld_averted_opd        <- (prevacc_opd - postvacc_p1_opd)* (dw_opd) *(illness_duration_opd)
+  yld_averted_opd        <- (prevacc_tot_opd - postvacc_tot_opd)* (dw_opd) *(illness_duration_opd)
   
   # total YLD averted
   
@@ -1097,44 +1146,22 @@ icer_scenario <- function (v_cost            = 2.96,
   
   yll_averted_total      <- (yll_averted_ipd) + (yll_averted_opd)
   
-  # DALYs averted for inpatients
-  
-  incremental_daly_ipd   <- (yld_averted_ipd) + (yll_averted_ipd)
-  
-  # DALYs averted for outpatients
-  
-  incremental_daly_opd   <- (yld_averted_opd) + (yll_averted_opd)
-  
+
   # total DALYs averted (used for final ICER value in the paper: delta E as a denominator)
   
-  incremental_daly_total <- (yll_averted_total) + (yld_averted_total)
+  incremental_daly_total <- (dalys_pre_total) - (dalys_post_total)
   
-  # ICER for inpatients presented as cost-per-DALY averted
-  
-  icer_daly_ipd          <- incremental_cost_ipd / incremental_daly_ipd
-  
-  # ICER for outpatients presented as cost-per-DALY averted
-  
-  icer_daly_opd          <- incremental_cost_opd / incremental_daly_opd
-  
+
   # ICER presented as cost-per-DALY averted (used in the paper as a final value)
   
   icer_daly_total        <- incremental_cost_total / incremental_daly_total
   
   
   
-  return (list (totcost_vacc_ipd              = totcost_vacc_ipd,
-                totcost_vacc_opd              = totcost_vacc_opd,
-                totcost_vacc_tot              = totcost_vacc_tot,
+  return (list (totcost_vacc_tot              = totcost_vacc_tot,
                 totcost_unvacc                = totcost_unvacc, 
-                incremental_cost_ipd          = incremental_cost_ipd,
-                incremental_cost_opd          = incremental_cost_opd,
                 incremental_cost_total        = incremental_cost_total,
-                case_averted_ipd              = case_averted_ipd,
-                case_averted_opd              = case_averted_opd,
                 case_averted_total            = case_averted_total,
-                icer_ipd                      = icer_ipd,
-                icer_opd                      = icer_opd,
                 icer_tot                      = icer_tot,
                 distance                      = distance,
                 pre_death_ipd                 = pre_death_ipd,
@@ -1143,9 +1170,9 @@ icer_scenario <- function (v_cost            = 2.96,
                 post_death_ipd                = post_death_ipd,
                 post_death_opd                = post_death_opd,
                 post_death_total              = post_death_total,
-                prevacc_ipd                   = prevacc_ipd,
-                prevacc_opd                   = prevacc_opd,
-                prevacc                       = prevacc,
+                prevacc_tot_ipd               = prevacc_tot_ipd,
+                prevacc_tot_opd               = prevacc_tot_opd,
+                prevacc_tot_sc                = prevacc_tot_sc,
                 distance                      = distance,
                 yll_pre_ipd                   = yll_pre_ipd,
                 yll_pre_opd                   = yll_pre_opd,
@@ -1168,14 +1195,10 @@ icer_scenario <- function (v_cost            = 2.96,
                 yll_averted_total             = yll_averted_total,
                 dalys_pre_total               = dalys_pre_total,
                 dalys_post_total              = dalys_post_total,
-                incremental_daly_ipd          = incremental_daly_ipd,
-                incremental_daly_opd          = incremental_daly_opd,
                 incremental_daly_total        = incremental_daly_total,
                 death_averted                 = death_averted,
                 death_averted_ipd             = death_averted_ipd,
                 death_averted_opd             = death_averted_opd,
-                icer_daly_ipd                 = icer_daly_ipd,
-                icer_daly_opd                 = icer_daly_opd,
                 icer_daly_total               = icer_daly_total)) 
 }
 
@@ -1194,11 +1217,14 @@ for (i in 1:runs) {
   
   icer_sample_s <- icer_scenario (lhs_sample_s$v_cost               [i],
                                   lhs_sample_s$delivery_cost        [i],
+                                  lhs_sample_s$tot_pop_p1           [i],
+                                  lhs_sample_s$tot_pop_p2           [i],
                                   lhs_sample_s$tot_pop              [i],
                                   lhs_sample_s$vacc_pop             [i],
                                   lhs_sample_s$postvacc_p1_ipd      [i],
                                   lhs_sample_s$postvacc_p1_opd      [i],
-                                  lhs_sample_s$postvacc_p1          [i],
+                                  lhs_sample_s$prevacc_p2_ipd       [i],
+                                  lhs_sample_s$prevacc_p2_opd       [i],
                                   lhs_sample_s$facility_cost        [i],   
                                   lhs_sample_s$dmc_ipd              [i],
                                   lhs_sample_s$dmc_opd              [i],
@@ -1220,17 +1246,11 @@ for (i in 1:runs) {
                                   lhs_sample_s$life_exp             [i])
   
   icer_dt_s [i, `:=` ( totcost_unvacc                  = icer_sample_s$totcost_unvacc,
-                       totcost_vacc_ipd                = icer_sample_s$totcost_vacc_ipd,
-                       totcost_vacc_opd                = icer_sample_s$totcost_vacc_opd,
                        totcost_vacc_tot                = icer_sample_s$totcost_vacc_tot,
-                       incremental_cost_ipd            = icer_sample_s$incremental_cost_ipd,
-                       incremental_cost_opd            = icer_sample_s$incremental_cost_opd,
-                       prevacc_ipd                     = icer_sample_s$prevacc_ipd,
-                       prevacc_opd                     = icer_sample_s$prevacc_opd,
-                       prevacc                         = icer_sample_s$prevacc,
                        incremental_cost_total          = icer_sample_s$incremental_cost_total,
-                       case_averted_ipd                = icer_sample_s$case_averted_ipd,
-                       case_averted_opd                = icer_sample_s$case_averted_opd,
+                       prevacc_tot_ipd                 = icer_sample_s$prevacc_tot_ipd,
+                       prevacc_tot_opd                 = icer_sample_s$prevacc_tot_opd,
+                       prevacc_tot_sc                  = icer_sample_s$prevacc_tot_sc,
                        case_averted_total              = icer_sample_s$case_averted_total,
                        pre_death_ipd                   = icer_sample_s$pre_death_ipd,
                        pre_death_opd                   = icer_sample_s$pre_death_opd,
@@ -1240,8 +1260,6 @@ for (i in 1:runs) {
                        post_death_total                = icer_sample_s$post_death_total,
                        dalys_pre_total                 = icer_sample_s$dalys_pre_total,
                        dalys_post_total                = icer_sample_s$dalys_post_total, 
-                       icer_daly_ipd                   = icer_sample_s$icer_daly_ipd,
-                       icer_daly_opd                   = icer_sample_s$icer_daly_opd,
                        icer_daly_total                 = icer_sample_s$icer_daly_total,
                        death_averted                   = icer_sample_s$death_averted,
                        death_averted_ipd               = icer_sample_s$death_averted_ipd,
@@ -1278,9 +1296,16 @@ cost_ui_vac_sc <- as.data.table(cost_ui_vac_sc)
 cost_ui_unv_sc$ui_interval <- seq(0, 100, 2.5)
 cost_ui_vac_sc$ui_interval <- seq(0, 100, 2.5)
 # case (prevacc)
-case_ui_unv_sc <- quantile(icer_dt_s$prevacc, probs = seq(0, 1, 0.025))
-case_ui_unv_sc <- as.data.table(case_ui_unv_sc)
-case_ui_unv_sc$ui_interval <- seq(0, 100, 2.5)
+case_ipd_unv_sc <- quantile(icer_dt_s$prevacc_ipd, probs = seq(0, 1, 0.025))
+case_ipd_unv_sc <- as.data.table(case_ipd_unv_sc)
+case_ipd_unv_sc$ui_interval <- seq(0, 100, 2.5)
+case_opd_unv_sc <- quantile(icer_dt_s$prevacc_opd, probs = seq(0, 1, 0.025))
+case_opd_unv_sc <- as.data.table(case_opd_unv_sc)
+case_opd_unv_sc$ui_interval <- seq(0, 100, 2.5)
+case_tot_unv_sc <- quantile(icer_dt_s$prevacc, probs = seq(0, 1, 0.025))
+case_tot_unv_sc <- as.data.table(case_tot_unv_sc)
+case_tot_unv_sc$ui_interval <- seq(0, 100, 2.5)
+
 # case (difference)
 case_avert_sc <- quantile(icer_dt_s$case_averted_total,probs = seq(0, 1, 0.025))
 case_avert_sc <- as.data.table(case_avert_sc)
@@ -1688,6 +1713,626 @@ toc ()
 # main program (end)
 # ------------------------------------------------------------------------------
   
+# Discounting (cost 3% health 0%)
+
+  # ------------------------------------------------------------------------------
+  # Latin Hypercube Sampling
+  # ------------------------------------------------------------------------------
+  
+  # https://stats.stackexchange.com/questions/495215/standard-error-standard-deviation-and-variance-confusion
+  
+  set.seed (3)
+  runs <- 4000
+  
+  # a design with n samples from k parameters
+  A <- randomLHS (n = runs, 
+                  k = 26) 
+  # It is common to transform the margins of the design (the columns) 
+  # into other distributions
+  # for gamma dist: a= shape (m^2/sigma^2), b= scale = 1/ (sigma^2/mean) 
+  # (m is mean and sigma is SD)
+  # for beta dist function: 
+  
+  beta <- function(mu, var) {
+    alpha <- ((1 - mu) / var - 1 / mu) * mu ^ 2
+    beta <- alpha * (1 / mu - 1)
+    return(params = list(alpha = alpha, beta = beta))
+  }
+  # beta parameterization for VE
+  beta(0.816,  0.01982924)
+  # beta parameterization for DW
+  beta(0.21, 0.0001)
+  beta(0.052, 0.0001)
+  # beta parameterization for CFR
+  beta(0.028, 0.00007972)
+  beta(0.019, 0.00001666)
+  
+  
+  lhs_sample <- matrix (nrow = nrow(A), ncol = ncol(A))
+  lhs_sample [,1]  <- 2.96
+  lhs_sample [,2]  <- qgamma (p = A[,2], shape = ((1.49/0.0612)^2), rate = (1.49/(0.0612)^2),
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,3]  <- 159831
+  lhs_sample [,4]  <- 113420
+  lhs_sample [,5]  <- 200
+  lhs_sample [,6]  <- 459
+  lhs_sample [,7]  <- 659
+  lhs_sample [,8]  <- qgamma (p = A[,8], shape = ((97.33/12.33)^2), rate = (97.33/(12.33)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,9]  <- qgamma (p = A[,9], shape = ((234.7688/265.9934)^2), rate = (234.7688/(265.9934)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,10] <- qgamma (p = A[,10], shape = ((115.3841/149.9214)^2), rate = (115.3841/(149.9214)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,11] <- qgamma (p = A[,11], shape = ((183.3415/229.8478)^2), rate = (183.3415/(229.8478)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,12] <- qgamma (p = A[,12], shape = ((48.58656/37.39749)^2), rate = (48.58656/(37.39749)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,13] <- qgamma (p = A[,13],  shape = ((21.48999/25.8971)^2), rate = (21.48999/(25.8971)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,14] <- qgamma (p = A[,14],  shape = ((36.91419/35.39041)^2), rate = (36.91419/(35.39041)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,15] <- qgamma (p = A[,15],  shape = ((77.53769/29.51196)^2), rate = (77.53769/(29.51196)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,16] <- qgamma (p = A[,16],   shape = ((74.28838/26.90198)^2), rate = (74.28838/(26.90198)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,17] <- qgamma (p = A[,17],  shape = ((76.13798/28.24641)^2),rate = (76.13798/(28.24641)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,18] <- qbeta  (p = A[,18], shape1 = 5.362628, shape2 = 1.20922, ncp=0,lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,19] <- qbeta (p = A[,19], shape1 = 348.18, shape2 = 1309.82, ncp=0, lower.tail = TRUE, log.p = FALSE) 
+  lhs_sample [,20] <- qbeta (p = A[,20], shape1 = 25.58192, shape2 = 466.3781, ncp = 0, lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,21] <- qgamma (p = A[,21], shape = ((0.0404/0.01532)^2), rate = (0.04/(0.0153)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  # mean = 0.040438356
+  # sd = 0.015315068
+  
+  lhs_sample [,22] <- qgamma (p = A[,22], shape = ((0.04559688/ 0.02500143)^2), rate = (0.04559688/(0.02500143)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,23] <- qbeta (p = A[,23], shape1 = 9.531057, shape2 = 330.8638, ncp = 0, lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,24] <- qbeta (p = A[,24], shape1 =  21.23796, shape2 = 1096.55, ncp = 0, lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,25] <- qgamma (p = A[,25], shape = ((7.56/0.527)^2), rate = (7.56/(0.527)^2), 
+                              lower.tail = TRUE, log.p = FALSE)
+  lhs_sample [,26] <- qnorm (p = A[,26], mean = 72.68, sd = 1.73979, lower.tail = TRUE, log.p = FALSE)
+  
+  # change the name of the lhs_sample
+  cols <- c(  "v_cost", 
+              "delivery_cost",    
+              "tot_pop",            
+              "vacc_pop",             
+              "postvacc_p1_ipd",      
+              "postvacc_p1_opd",     
+              "postvacc_p1",          
+              "facility_cost",        
+              "dmc_ipd",              
+              "dmc_opd",         
+              "dmc",               
+              "dnmc_ipd",          
+              "dnmc_opd",             
+              "dnmc",                 
+              "indirect_ipd",      
+              "indirect_opd",        
+              "indirect",             
+              "ve",                   
+              "dw_ipd",               
+              "dw_opd",               
+              "illness_duration_ipd", 
+              "illness_duration_opd", 
+              "cfr_ipd",             
+              "cfr_opd",              
+              "age_death",            
+              "life_exp" ) 
+  colnames (lhs_sample) <- cols
+  # change the matrix into the data table. (R doesn't recognize atomic values inside matrix)
+  lhs_sample <- as.data.table (lhs_sample)
+  
+  # function - computer icer for a given input parameter sample
+  
+  compute_icer <- function (v_cost            = 2.96,
+                            delivery_cost,
+                            tot_pop           = 159831,
+                            vacc_pop          = 113420,
+                            postvacc_p1_ipd   = 200,
+                            postvacc_p1_opd   = 459,
+                            postvacc_p1       = 659,
+                            facility_cost,
+                            dmc_ipd,
+                            dmc_opd,
+                            dmc,
+                            dnmc_ipd,
+                            dnmc_opd,
+                            dnmc,
+                            indirect_ipd,
+                            indirect_opd,
+                            indirect,
+                            ve,
+                            dw_ipd,
+                            dw_opd,
+                            illness_duration_ipd,
+                            illness_duration_opd,
+                            cfr_ipd,
+                            cfr_opd,
+                            age_death,
+                            life_exp) {
+    
+    # total cost for inpatients (vaccinated)
+    
+    totcost_vacc_ipd       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd)
+    
+    # total cost for outpatients (vaccinated)
+    
+    totcost_vacc_opd       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
+    
+    # total cost of vaccinated population
+    
+    totcost_vacc_tot       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd) + (postvacc_p1_opd) * (facility_cost + dmc_opd + dnmc_opd + indirect_opd)
+    
+    # number of pre-vaccination typhoid case retrospectively calculated (inpatients)
+    
+    prevacc_ipd            <- (postvacc_p1_ipd)/(1-ve*(vacc_pop/tot_pop))
+    
+    # number of pre-vaccination typhoid case retrospectively calculated (outpatients)
+    
+    prevacc_opd            <- (postvacc_p1_opd)/(1-ve*(vacc_pop/tot_pop))
+    
+    # total number of pre-vaccination cases (inpatients + outpatients)
+    
+    prevacc                <- (prevacc_ipd)  + (prevacc_opd)
+    
+    # total cost of pre-vaccination typhoid cases
+    
+    totcost_unvacc         <- (prevacc)*(facility_cost + dmc + dnmc + indirect)
+    
+    # incremental cost of inpatients 
+    
+    incremental_cost_ipd   <- (totcost_vacc_ipd) - (totcost_unvacc)
+    
+    # incremental cost of outpatients
+    
+    incremental_cost_opd   <- (totcost_vacc_opd) - (totcost_unvacc)
+    
+    # incremental cost total (used for the final value as a delta C) 3% discounted
+    
+    incremental_cost_total <- ((totcost_vacc_tot) - (totcost_unvacc))/(1.03)
+    
+    # averted inpatient cases
+    
+    case_averted_ipd       <- (prevacc_ipd)      - (postvacc_p1_ipd)
+    
+    # averted outpatient cases
+    
+    case_averted_opd       <- (prevacc_opd)      - (postvacc_p1_opd)
+    
+    # total averted cases 
+    
+    case_averted_total     <- (case_averted_ipd) + (case_averted_opd)
+    
+    # icer of inpatients in terms of cost per case averted (not used in the paper)
+    
+    icer_ipd               <- incremental_cost_ipd / case_averted_ipd
+    
+    # icer of outpatients in terms of cost per case averted (not used in the paper)
+    
+    icer_opd               <- incremental_cost_opd / case_averted_opd
+    
+    # total incremental cost in terms of cost per case averted (not used in the paper)
+    
+    icer_tot               <- incremental_cost_total / case_averted_total
+    
+    # YLL calculation component: amount of years of life loss between life-expectancy and average age at death
+    
+    distance               <- (life_exp) - (age_death)
+    
+    # number of deaths in no-vaccination situation (inpatients)
+    
+    pre_death_ipd          <- (cfr_ipd)*(prevacc_ipd)
+    
+    # number of deaths in no-vaccination situation (outpatients)
+    
+    pre_death_opd          <- (cfr_opd)*(prevacc_opd)
+    
+    # number of deaths in no-vaccination situation (total)
+    
+    pre_death_total        <- (pre_death_ipd) + (pre_death_opd)
+    
+    # number of deaths post-vaccination situation (inpatients)
+    
+    post_death_ipd         <- (cfr_ipd)*(postvacc_p1_ipd)
+    
+    # number of deaths post-vaccination situation (outpatients)
+    
+    post_death_opd         <- (cfr_opd)*(postvacc_p1_opd)
+    
+    # number of deaths post-vaccination situation (total)
+    
+    post_death_total       <-  (post_death_ipd) + (post_death_opd) 
+    
+    # number of deaths averted (total)
+    
+    death_averted          <-  (pre_death_total) - (post_death_total)
+    
+    # number of deaths averted (inpatients)
+    
+    death_averted_ipd      <-  (pre_death_ipd) - (post_death_ipd)
+    
+    # number of deaths averted (outpatients)
+    
+    death_averted_opd      <-  (pre_death_opd) - (post_death_opd)
+    
+    # YLL of inpatients in the pre-vaccination situation (total number of inpatient deaths * amount of years loss per person)
+    
+    yll_pre_ipd            <- (pre_death_ipd)*(distance)
+    
+    # YLL of outpatients in the pre-vaccination situation (total number of outpatient deaths * amount of years loss per person)
+    
+    yll_pre_opd            <- (pre_death_opd)*(distance)
+    
+    # YLL total in pre-vaccination 
+    
+    yll_pre_total          <- (yll_pre_ipd)  + (yll_pre_opd)
+    
+    # amount of years loss for inpatients in post-vaccination
+    
+    yll_post_ipd           <- (post_death_ipd)*(distance)
+    
+    # amount of years loss for outpatients in post-vaccination
+    
+    yll_post_opd           <- (post_death_opd)*(distance)
+    
+    # total amount of years loss in post-vaccination
+    
+    yll_post_total         <- (yll_post_ipd) + (yll_post_opd)
+    
+    # years of life with disease for inpatients in pre-vacc situation (number of inpatient cases * disability weight * total illness duration presented as years)
+    
+    yld_pre_ipd            <- (prevacc_ipd)*(dw_ipd)*(illness_duration_ipd)
+    
+    # years of life with disease for outpatients in pre-vacc situation (number of outpatient cases * disability weight * total illness duration presented as years)
+    
+    yld_pre_opd            <- (prevacc_opd)*(dw_opd)*(illness_duration_opd)
+    
+    # total YLD of pre-vaccination typhoid cases
+    
+    yld_pre_total          <- (yld_pre_ipd) + (yld_pre_opd)
+    
+    # total DALYs for pre-vaccination typhoid cases (YLL total + YLD total)
+    
+    dalys_pre_total        <- (yll_pre_total) + (yld_pre_total)
+    
+    # years of life with disease for inpatients in post-vacc situation (number of inpatient cases * disability weight * total illness duration presented as years)
+    
+    yld_post_ipd           <- (postvacc_p1_ipd)*(dw_ipd)*(illness_duration_ipd)
+    
+    # years of life with disease for outpatients in post-vacc situation (number of outpatient cases * disability weight * total illness duration presented as years)
+    
+    yld_post_opd           <- (postvacc_p1_opd)*(dw_opd)*(illness_duration_opd)
+    
+    # total YLD for post-vaccination typhoid cases (YLL total + YLD total)
+    
+    yld_post_total         <- (yld_post_ipd) + (yld_post_opd)
+    
+    # total DALYs for post-vaccination typhoid cases (YLL total + YLD total)
+    
+    dalys_post_total       <- (yll_post_total) + (yld_post_total)
+    
+    # YLD averted for inpatients
+    
+    yld_averted_ipd        <- (prevacc_ipd - postvacc_p1_ipd)* (dw_ipd) *(illness_duration_ipd)
+    
+    # YLD averted for outpatients
+    
+    yld_averted_opd        <- (prevacc_opd - postvacc_p1_opd)* (dw_opd) *(illness_duration_opd)
+    
+    # total YLD averted
+    
+    yld_averted_total      <- (yld_averted_ipd) + (yld_averted_opd) 
+    
+    # YLL averted  for inpatients
+    
+    yll_averted_ipd        <- (yll_pre_ipd)  -(yll_post_ipd)
+    
+    # YLL averted for outpatients
+    
+    yll_averted_opd        <- (yll_pre_opd)  -(yll_post_opd)
+    
+    # total YLL averted
+    
+    yll_averted_total      <- (yll_averted_ipd) + (yll_averted_opd)
+    
+    # DALYs averted for inpatients
+    
+    incremental_daly_ipd   <- (yld_averted_ipd) + (yll_averted_ipd)
+    
+    # DALYs averted for outpatients
+    
+    incremental_daly_opd   <- (yld_averted_opd) + (yll_averted_opd)
+    
+    # total DALYs averted (used for final ICER value in the paper: delta E as a denominator)
+    
+    incremental_daly_total <- ((yll_averted_total) + (yld_averted_total))
+    
+    # ICER for inpatients presented as cost-per-DALY averted
+    
+    icer_daly_ipd          <- incremental_cost_ipd / incremental_daly_ipd
+    
+    # ICER for outpatients presented as cost-per-DALY averted
+    
+    icer_daly_opd          <- incremental_cost_opd / incremental_daly_opd
+    
+    # ICER presented as cost-per-DALY averted (used in the paper as a final value)
+    
+    icer_daly_total        <- incremental_cost_total / incremental_daly_total
+    
+    
+    
+    return (list (totcost_vacc_ipd              = totcost_vacc_ipd,
+                  totcost_vacc_opd              = totcost_vacc_opd,
+                  totcost_vacc_tot              = totcost_vacc_tot,
+                  totcost_unvacc                = totcost_unvacc, 
+                  incremental_cost_ipd          = incremental_cost_ipd,
+                  incremental_cost_opd          = incremental_cost_opd,
+                  incremental_cost_total        = incremental_cost_total,
+                  case_averted_ipd              = case_averted_ipd,
+                  case_averted_opd              = case_averted_opd,
+                  case_averted_total            = case_averted_total,
+                  icer_ipd                      = icer_ipd,
+                  icer_opd                      = icer_opd,
+                  icer_tot                      = icer_tot,
+                  distance                      = distance,
+                  pre_death_ipd                 = pre_death_ipd,
+                  pre_death_opd                 = pre_death_opd,
+                  pre_death_total               = pre_death_total,
+                  post_death_ipd                = post_death_ipd,
+                  post_death_opd                = post_death_opd,
+                  post_death_total              = post_death_total,
+                  prevacc_ipd                   = prevacc_ipd,
+                  prevacc_opd                   = prevacc_opd,
+                  prevacc                       = prevacc,
+                  distance                      = distance,
+                  yll_pre_ipd                   = yll_pre_ipd,
+                  yll_pre_opd                   = yll_pre_opd,
+                  yll_pre_total                 = yll_pre_total,
+                  yll_pre_total                 = yll_pre_total,
+                  yll_post_ipd                  = yll_post_ipd,
+                  yll_post_opd                  = yll_post_total,
+                  yll_post_total                = yll_post_total,
+                  yld_pre_ipd                   = yll_pre_ipd,
+                  yld_pre_opd                   = yld_pre_opd,
+                  yld_pre_total                 = yld_pre_total,
+                  yld_post_ipd                  = yld_post_ipd,
+                  yld_post_opd                  = yld_post_opd,
+                  yld_post_total                = yld_post_total,
+                  yld_averted_ipd               = yld_averted_ipd,
+                  yld_averted_opd               = yld_averted_opd,
+                  yld_averted_total             = yld_averted_total,
+                  yll_averted_ipd               = yll_averted_ipd,
+                  yll_averted_opd               = yll_averted_opd,
+                  yll_averted_total             = yll_averted_total,
+                  dalys_pre_total               = dalys_pre_total,
+                  dalys_post_total              = dalys_post_total,
+                  incremental_daly_ipd          = incremental_daly_ipd,
+                  incremental_daly_opd          = incremental_daly_opd,
+                  incremental_daly_total        = incremental_daly_total,
+                  death_averted                 = death_averted,
+                  death_averted_ipd             = death_averted_ipd,
+                  death_averted_opd             = death_averted_opd,
+                  icer_daly_ipd                 = icer_daly_ipd,
+                  icer_daly_opd                 = icer_daly_opd,
+                  icer_daly_total               = icer_daly_total)) 
+  }
+  
+  # start time
+  tic ()
+  print (Sys.time ())
+  
+  # create empty icer data table 
+  icer_dt <- data.table (run_id = 1:runs)
+  
+  # combine data tables -- run_id & lhs sample
+  icer_dt <- cbind (icer_dt, lhs_sample)
+  
+  # loop through psa sample to generate icers
+  for (i in 1:runs) {
+    
+    icer_sample <- compute_icer (lhs_sample$v_cost               [i],
+                                 lhs_sample$delivery_cost        [i],
+                                 lhs_sample$tot_pop              [i],
+                                 lhs_sample$vacc_pop             [i],
+                                 lhs_sample$postvacc_p1_ipd      [i],
+                                 lhs_sample$postvacc_p1_opd      [i],
+                                 lhs_sample$postvacc_p1          [i],
+                                 lhs_sample$facility_cost        [i],   
+                                 lhs_sample$dmc_ipd              [i],
+                                 lhs_sample$dmc_opd              [i],
+                                 lhs_sample$dmc                  [i],
+                                 lhs_sample$dnmc_ipd             [i],
+                                 lhs_sample$dnmc_opd             [i],
+                                 lhs_sample$dnmc                 [i],
+                                 lhs_sample$indirect_ipd         [i],
+                                 lhs_sample$indirect_opd         [i],
+                                 lhs_sample$indirect             [i],
+                                 lhs_sample$ve                   [i],
+                                 lhs_sample$dw_ipd               [i],
+                                 lhs_sample$dw_opd               [i],
+                                 lhs_sample$illness_duration_ipd [i],
+                                 lhs_sample$illness_duration_opd [i],
+                                 lhs_sample$cfr_ipd              [i],
+                                 lhs_sample$cfr_opd              [i],
+                                 lhs_sample$age_death            [i],
+                                 lhs_sample$life_exp             [i])
+    
+    icer_dt [i, `:=` ( totcost_unvacc                  = icer_sample$totcost_unvacc,
+                       totcost_vacc_ipd                = icer_sample$totcost_vacc_ipd,
+                       totcost_vacc_opd                = icer_sample$totcost_vacc_opd,
+                       totcost_vacc_tot                = icer_sample$totcost_vacc_tot,
+                       incremental_cost_ipd            = icer_sample$incremental_cost_ipd,
+                       incremental_cost_opd            = icer_sample$incremental_cost_opd,
+                       prevacc_ipd                     = icer_sample$prevacc_ipd,
+                       prevacc_opd                     = icer_sample$prevacc_opd,
+                       prevacc                         = icer_sample$prevacc,
+                       incremental_cost_total          = icer_sample$incremental_cost_total,
+                       case_averted_ipd                = icer_sample$case_averted_ipd,
+                       case_averted_opd                = icer_sample$case_averted_opd,
+                       case_averted_total              = icer_sample$case_averted_total,
+                       pre_death_ipd                   = icer_sample$pre_death_ipd,
+                       pre_death_opd                   = icer_sample$pre_death_opd,
+                       pre_death_total                 = icer_sample$pre_death_total,
+                       post_death_ipd                  = icer_sample$post_death_ipd,
+                       post_death_opd                  = icer_sample$post_death_opd,
+                       post_death_total                = icer_sample$post_death_total,
+                       dalys_pre_total                 = icer_sample$dalys_pre_total,
+                       dalys_post_total                = icer_sample$dalys_post_total, 
+                       icer_daly_ipd                   = icer_sample$icer_daly_ipd,
+                       icer_daly_opd                   = icer_sample$icer_daly_opd,
+                       icer_daly_total                 = icer_sample$icer_daly_total,
+                       death_averted                   = icer_sample$death_averted,
+                       death_averted_ipd               = icer_sample$death_averted_ipd,
+                       death_averted_opd               = icer_sample$death_averted_opd,
+                       incremental_daly_total          = icer_sample$incremental_daly_total
+                       
+                       
+    )]
+  }
+  
+  # icer plot 
+  options(scipen=9999)
+  plot ( x = icer_dt$incremental_daly_total, y =icer_dt$incremental_cost_total)
+  
+  # cea plane
+  cea_plane <- ggplot(data = icer_dt, aes(x=incremental_daly_total,
+                                          y=incremental_cost_total))+
+    geom_point() +
+    xlim(-5000, 5000) + ylim(-6000000, 6000000) +
+    geom_hline(yintercept = 0) +
+    geom_vline(xintercept = 0) +
+    xlab("DALYs averted") +
+    ylab("Incremental cost") +
+    theme_bw()
+  cea_plane
+  
+  # icer (cost-per-DALY averted) median 50% value
+  icer_dt_m <- icer_dt %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.5))
+  
+  # icer (cost-per-DALY averted) 95% lower bound: 2.5% value
+  icer_dt_l <- icer_dt_m %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.025))
+  
+  # icer (cost-per-DALY averted) 95% upper bound: 97.5%  value
+  icer_dt_h <- icer_dt_l %>% mutate (icer_daly_total, quantile(icer_daly_total, probs = 0.975))
+  
+  # delta cost <0, delta effect >0: less costly and averted more dalys = new intervention dominates.
+  # more effective and cost saving: intervention dominated for 2275/4000 = 56.8%
+  icer_dt_cost_minus <- icer_dt %>% filter(incremental_cost_total <0)
+  
+  
+  # ceac
+  
+  print(summary(icer_dt$icer_daly_total))
+  print(quantile(icer_dt$icer_daly_total, c(.5 , .025, .975 )))
+  
+  # uncertainty ranges
+  icer_ui <- quantile(icer_dt$icer_daly_total, probs = seq(0, 1, 0.025))
+  icer_ui <- as.data.table(icer_ui)
+  # uncertainty interval table (icer)
+  icer_ui$ui_interval <- seq(0, 100, 2.5)
+  
+  # cost
+  cost_ui_unv <- quantile(icer_dt$totcost_unvacc, probs = seq(0, 1, 0.025))
+  cost_ui_vac <- quantile(icer_dt$totcost_vacc_tot, probs = seq(0, 1, 0.025))
+  cost_ui_unv <- as.data.table(cost_ui_unv)
+  cost_ui_vac <- as.data.table(cost_ui_vac)
+  cost_ui_unv$ui_interval <- seq(0, 100, 2.5)
+  cost_ui_vac$ui_interval <- seq(0, 100, 2.5)
+  # case (prevacc)
+  case_ui_unv <- quantile(icer_dt$prevacc, probs = seq(0, 1, 0.025))
+  case_ui_unv <- as.data.table(case_ui_unv)
+  case_ui_unv$ui_interval <- seq(0, 100, 2.5)
+  # case (difference)
+  case_avert <- quantile(icer_dt$case_averted_total,probs = seq(0, 1, 0.025))
+  case_avert <- as.data.table(case_avert)
+  case_avert$ui_interval <- seq(0, 100, 2.5)
+  # inpatient case
+  incase_unv <- quantile(icer_dt$prevacc_ipd, probs = seq(0, 1, 0.025))
+  incase_unv <- as.data.table(incase_unv)
+  incase_vac <- quantile(icer_dt$postvacc_p1_ipd, probs = seq(0, 1, 0.025))
+  incase_vac <- as.data.table(incase_vac)
+  incase_avt <- quantile(icer_dt$case_averted_ipd, probs = seq(0, 1, 0.025))
+  incase_avt <- as.data.table(incase_avt)
+  incase_avt$ui_interval <-seq(0, 100, 2.5)
+  incase_diff <- cbind(incase_unv, incase_vac, incase_avt)
+  # outpatient case 
+  outcase_unv <- quantile(icer_dt$prevacc_opd, probs = seq(0, 1, 0.025))
+  outcase_unv <- as.data.table(outcase_unv)
+  outcase_vac <- quantile(icer_dt$postvacc_p1_opd, probs = seq(0, 1, 0.025))
+  outcase_vac <- as.data.table(outcase_vac)
+  outcase_avt <- quantile(icer_dt$case_averted_opd, probs = seq(0, 1, 0.025))
+  outcase_avt <- as.data.table(outcase_avt)
+  outcase_avt$ui_interval <-seq(0, 100, 2.5)
+  outcase_diff <- cbind(outcase_unv, outcase_vac, outcase_avt)
+  # IPD deaths (prevacc)
+  death_ipd_unv   <- quantile(icer_dt$pre_death_ipd, probs = seq(0, 1, 0.025))
+  death_ipd_unv   <- as.data.table(death_ipd_unv)
+  # IPD deaths (postvacc)
+  death_ipd_vac   <- quantile(icer_dt$post_death_ipd, probs = seq(0, 1, 0.025))
+  death_ipd_vac   <- as.data.table(death_ipd_vac)
+  # IPD deaths (diff)
+  death_ipd_avert  <- quantile(icer_dt$death_averted_ipd, probs = seq(0, 1, 0.025))
+  death_ipd_avert  <- as.data.table(death_ipd_avert)
+  death_ipd_avert$ui_interval <-seq(0, 100, 2.5)
+  death_ipd <- cbind(death_ipd_unv, death_ipd_vac, death_ipd_avert)
+  # OPD deaths
+  death_opd_unv   <- quantile(icer_dt$pre_death_opd, probs = seq(0, 1, 0.025))
+  death_opd_unv   <- as.data.table(death_opd_unv)
+  death_opd_vac   <- quantile(icer_dt$post_death_opd, probs = seq(0, 1, 0.025))
+  death_opd_vac   <- as.data.table(death_opd_vac)
+  death_opd_avert <- quantile(icer_dt$death_averted_opd, probs = seq(0, 1, 0.025))
+  death_opd_avert <- as.data.table(death_opd_avert)
+  death_opd_avert$ui_interval <-seq(0, 100, 2.5)
+  death_opd       <- cbind(death_opd_unv, death_opd_vac, death_opd_avert)
+  # deaths (prevacc)
+  deaths_ui_unv <- quantile(icer_dt$pre_death_total, probs = seq(0, 1, 0.025))
+  deaths_ui_unv <- as.data.table(deaths_ui_unv)
+  # deaths (postvacc)
+  deaths_ui_vac <- quantile(icer_dt$post_death_total, probs = seq(0, 1, 0.025))
+  deaths_ui_vac <- as.data.table(deaths_ui_vac)
+  # deaths (difference)
+  death_avert   <- quantile(icer_dt$death_averted, probs = seq(0, 1, 0.025))
+  death_avert   <- as.data.table(death_avert)
+  death_avert$ui_interval <-  seq(0, 100, 2.5)
+  death_diff    <- cbind(deaths_ui_unv, deaths_ui_vac, death_avert)
+  # dalys (prevacc)
+  daly_ui_unv   <- quantile(icer_dt$dalys_pre_total, probs = seq(0, 1, 0.025))
+  daly_ui_unv   <- as.data.table(daly_ui_unv)
+  # dalys (postvacc)
+  daly_ui_vac   <- quantile(icer_dt$dalys_post_total, probs = seq(0, 1, 0.025))
+  daly_ui_vac   <- as.data.table(daly_ui_vac)
+  # incremental daly 
+  inc_daly      <- quantile(icer_dt$incremental_daly_total, probs = seq(0, 1, 0.025))
+  inc_daly      <- as.data.table(inc_daly)
+  inc_daly$ui_interval <- seq(0, 100, 2.5)
+  # combine daly difference table
+  daly_diff <- cbind(daly_ui_unv, daly_ui_vac,inc_daly)
+  
+  # probability 
+  probability_cea <- seq(from=0, to= 1, by= .01)
+  
+  wtp<- quantile(icer_dt$icer_daly_total, probability_cea)
+  
+  wtp_dt <- as.data.table(wtp)
+  
+  # wtp table with probs
+  wtp_prob <- cbind (wtp_dt, probability_cea)
+  
+  write_xlsx(wtp_prob, "/Users/hyolimkang/Desktop/IVI onedrive/OneDrive - International Vaccine Institute/Desktop/2021/TCV \\wtp_prob.xlsx")
+  
+  # keep only positive wtp values (negative values are dominant values, no need to show)
+  wtp_post <- wtp_prob %>% filter(wtp > 0)
+  
+  # ceac ggplot
+  
+  ceac <- ggplot(data = wtp_post, aes(x = wtp, y = probability_cea)) +
+    geom_line(color = 'darkblue') +
+    scale_x_continuous(expand = c(0,0)) +
+    scale_y_continuous(expand = c(0,0)) +
+    theme_bw()
+  ceac
   
 
 
