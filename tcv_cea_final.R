@@ -950,11 +950,11 @@ icer_scenario <- function (v_cost            = 2.96,
   
   # IPD post-vacc burden in phase1 (Scenario: when vaccine spread out)
   
-  postvacc_p1_ipd_sc     <- (prevacc_p1)*(1-ve*((tot_pop_p1/tot_pop)*vacc_pop/tot_pop_p1))* 0.303
+  postvacc_p1_ipd_sc     <- (postvacc_p1_sc)* 0.303
   
   # OPD post-vacc burden in phase1 (Scenario: when vaccine spread out)
   
-  postvacc_p1_opd_sc     <- (prevacc_p1)*(1-ve*((tot_pop_p1/tot_pop)*vacc_pop/tot_pop_p1))* (1-0.303)
+  postvacc_p1_opd_sc     <- (postvacc_p1_sc)* (1-0.303)
   
   # post burden in phase2 (when vaccine spread out)
   
@@ -973,6 +973,9 @@ icer_scenario <- function (v_cost            = 2.96,
   
   prevacc_p2             <- (postvacc_p2_ipd_sc + postvacc_p2_opd_sc)/(1-ve*((tot_pop_p2/tot_pop)*vacc_pop/tot_pop_p2))
   
+  # prevacc burden in phase 1 (when spread out)
+  
+  prevacc_p1_sc         <- (postvacc_p1_ipd_sc + postvacc_p1_opd_sc)/(1-ve*((tot_pop_p1/tot_pop)*vacc_pop/tot_pop_p1))
   
   # total post-vacc cases (when spread out)
   
@@ -980,31 +983,43 @@ icer_scenario <- function (v_cost            = 2.96,
   
   # total IPD post-vacc cases (when spread out)
   
-  postvacc_tot_ipd       <-  (postvacc_tot_sc)* ((0.303 + 0.275)/2)
+  postvacc_tot_ipd       <-  (postvacc_p1_ipd_sc) + (postvacc_p2_ipd_sc)
   
   # total OPD post-vacc cases (when spread out)
   
-  postvacc_tot_opd       <-  (postvacc_tot_sc)* (1 - 0.289)
+  postvacc_tot_opd       <-  (postvacc_p1_opd_sc) + (postvacc_p2_opd_sc)
   
   # total pre-vacc cases (when spread out)
   
   prevacc_tot_sc        <- (postvacc_tot_sc) / (1- ve*({(tot_pop_p1/tot_pop)*vacc_pop + (tot_pop_p2/tot_pop)*vacc_pop}/tot_pop))
   
-  # total IPD pre-vacc (when spread out) --> (Average IPD rate of Phase 1 and 2)
+  # prevacc IPD and OPD in Phase 1 (when spread out)
+  
+  prevacc_p1_ipd        <- (prevacc_p1_sc) * (0.303)
+  
+  prevacc_p1_opd        <- (prevacc_p1_sc) * (1- 0.303)
+  
+  # prevacc IPD and OPD in Phase 2 (when spread out)
+  
+  prevacc_p2_ipd        <- (prevacc_p2) * (0.275)
+  
+  prevacc_p2_opd        <- (prevacc_p2) * (1-0.275)
+  
+  # total IPD pre-vacc (when spread out) 
 
-  prevacc_tot_ipd       <- (prevacc_tot_sc) * ((0.303 + 0.275)/2)  
+  prevacc_tot_ipd       <- (prevacc_p1_ipd) + (prevacc_p2_ipd)
   
-  # total OPD pre-vacc (when spread out) --> (1 - average IPD rate of Phase 1 and 2) 
+  # total OPD pre-vacc (when spread out) 
   
-  prevacc_tot_opd      <- (prevacc_tot_sc) * (1 - 0.289)
+  prevacc_tot_opd      <- (prevacc_p1_opd) + (prevacc_p2_opd)
   
   # total cost of pre-vaccination typhoid cases (when spread out)
   
-  totcost_unvacc         <- (prevacc_tot_sc)* (facility_cost + dmc + dnmc+ indirect)
+  totcost_unvacc         <- (prevacc_p1_ipd + prevacc_p2_ipd)* (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd) + (prevacc_p1_opd + prevacc_p2_opd)*(facility_cost + dmc_opd + dnmc_opd + indirect_opd)
   
-  # total cost of post-vaccinated population (when spread out) --> when spread out, the inpatient, outpatient cases are uncertain due to different hospitalization rate. therefore, total number and average costs were used
+  # total cost of post-vaccinated population (when spread out)
   
-  totcost_vacc_tot       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_tot_sc) * (facility_cost + dmc + dnmc + indirect)
+  totcost_vacc_tot       <- (v_cost + delivery_cost) * (vacc_pop) + (postvacc_p1_ipd_sc + postvacc_p2_ipd_sc) * (facility_cost + dmc_ipd + dnmc_ipd + indirect_ipd) + (postvacc_p1_opd_sc + postvacc_p2_opd_sc)*(facility_cost + dmc_opd + dnmc_opd + indirect_opd)
 
   # incremental cost total (used for the final value as a delta C)
   
@@ -1016,7 +1031,7 @@ icer_scenario <- function (v_cost            = 2.96,
   
   # averted outpatient cases
   
-  case_averted_opd       <- (prevacc_tot_sc)      - (postvacc_tot_opd)
+  case_averted_opd       <- (prevacc_tot_opd) - (postvacc_tot_opd)
   
   # total averted cases 
   
@@ -1173,6 +1188,13 @@ icer_scenario <- function (v_cost            = 2.96,
                 prevacc_tot_ipd               = prevacc_tot_ipd,
                 prevacc_tot_opd               = prevacc_tot_opd,
                 prevacc_tot_sc                = prevacc_tot_sc,
+                prevacc_p1                    = prevacc_p1,
+                prevacc_p2                    = prevacc_p2,
+                prevacc_p1_sc                 = prevacc_p1_sc,
+                postvacc_p1_ipd_sc            = postvacc_p1_ipd_sc,
+                postvacc_p1_opd_sc            = postvacc_p1_opd_sc,
+                postvacc_p2_ipd_sc            = postvacc_p2_ipd_sc,
+                postvacc_p2_opd_sc            = postvacc_p2_opd_sc,
                 distance                      = distance,
                 yll_pre_ipd                   = yll_pre_ipd,
                 yll_pre_opd                   = yll_pre_opd,
@@ -1248,9 +1270,16 @@ for (i in 1:runs) {
   icer_dt_s [i, `:=` ( totcost_unvacc                  = icer_sample_s$totcost_unvacc,
                        totcost_vacc_tot                = icer_sample_s$totcost_vacc_tot,
                        incremental_cost_total          = icer_sample_s$incremental_cost_total,
+                       prevacc_p1                      = icer_sample_s$prevacc_p1,
+                       prevacc_p2                      = icer_sample_s$prevacc_p2,
+                       prevacc_p1_sc                   = icer_sample_s$prevacc_p1_sc,
                        prevacc_tot_ipd                 = icer_sample_s$prevacc_tot_ipd,
                        prevacc_tot_opd                 = icer_sample_s$prevacc_tot_opd,
                        prevacc_tot_sc                  = icer_sample_s$prevacc_tot_sc,
+                       postvacc_p1_ipd_sc              = icer_sample_s$postvacc_p1_ipd_sc,
+                       postvacc_p1_opd_sc              = icer_sample_s$postvacc_p1_opd_sc,
+                       postvacc_p2_ipd_sc              = icer_sample_s$postvacc_p2_ipd_sc,
+                       postvacc_p2_opd_sc              = icer_sample_s$postvacc_p2_opd_sc,
                        case_averted_total              = icer_sample_s$case_averted_total,
                        pre_death_ipd                   = icer_sample_s$pre_death_ipd,
                        pre_death_opd                   = icer_sample_s$pre_death_opd,
@@ -1288,17 +1317,56 @@ icer_ui_sc <- quantile(icer_dt_s$icer_daly_total, probs = seq(0, 1, 0.025))
 icer_ui_sc <- as.data.table(icer_ui_sc)
 icer_ui_sc$ui_interval <- seq(0, 100, 2.5)
 
-# cost
-cost_ui_unv_sc <- quantile(icer_dt_s$totcost_unvacc, probs = seq(0, 1, 0.025))
-cost_ui_vac_sc <- quantile(icer_dt_s$totcost_vacc_tot, probs = seq(0, 1, 0.025))
-cost_ui_unv_sc <- as.data.table(cost_ui_unv_sc)
-cost_ui_vac_sc <- as.data.table(cost_ui_vac_sc)
-cost_ui_unv_sc$ui_interval <- seq(0, 100, 2.5)
-cost_ui_vac_sc$ui_interval <- seq(0, 100, 2.5)
-# case (prevacc)
-case_ipd_unv_sc <- quantile(icer_dt_s$prevacc_ipd, probs = seq(0, 1, 0.025))
-case_ipd_unv_sc <- as.data.table(case_ipd_unv_sc)
-case_ipd_unv_sc$ui_interval <- seq(0, 100, 2.5)
+# cost difference 
+cost_ui_sc <- quantile(icer_dt_s$incremental_cost_total, probs = seq(0, 1, 0.025))
+cost_ui_sc <- as.data.table(cost_ui_sc)
+cost_ui_sc$ui_interval <- seq(0, 100, 2.5)
+
+cost_ui <- quantile(icer_dt$incremental_cost_total, probs = seq(0, 1, 0.025))
+cost_ui <- as.data.table(cost_ui)
+cost_ui$ui_interval <- seq(0, 100, 2.5)
+
+# effect difference 
+daly_ui_sc <- quantile(icer_dt_s$incremental_daly_total, probs = seq(0, 1, 0.025))
+daly_ui_sc <- as.data.table(daly_ui_sc)
+daly_ui_sc$ui_interval <- seq(0, 100, 2.5)
+
+daly_ui <- quantile(icer_dt$incremental_daly_total, probs = seq(0, 1, 0.025))
+daly_ui <- as.data.table(daly_ui)
+daly_ui$ui_interval <- seq(0, 100, 2.5)
+
+
+# case (prevacc in spread out scenario vs. phase1 only: phase1)
+case_p1_unv_sc <- quantile(icer_dt_s$prevacc_p1_sc, probs = seq(0, 1, 0.025))
+case_p1_unv_sc <- as.data.table(case_p1_unv_sc)
+case_p1_unv_sc$ui_interval <- seq(0, 100, 2.5)
+case_p1_unv    <- quantile(icer_dt_s$prevacc_p1, probs = seq(0, 1, 0.025))
+case_p1_unv    <- as.data.table(case_p1_unv)
+case_p1_unv$ui_interval    <- seq(0, 100, 2.5)
+
+case_p2_unv_sc <- quantile(icer_dt_s$prevacc_p2, probs = seq(0, 1, 0.025))
+case_p2_unv_sc <- as.data.table(case_p2_unv_sc)
+case_p2_unv_sc$ui_interval <- seq(0, 100, 2.5)
+
+# case (post-vacc in spread out scenario: phase1)
+case_p1_ipd_vac_sc  <- quantile(icer_dt_s$postvacc_p1_ipd_sc, probs = seq(0, 1, 0.025))
+case_p1_ipd_vac_sc <- as.data.table(case_p1_ipd_vac_sc)
+case_p1_ipd_vac_sc$ui_interval <- seq(0, 100, 2.5)
+case_p1_opd_vac_sc  <- quantile(icer_dt_s$postvacc_p1_opd_sc, probs = seq(0, 1, 0.025))
+case_p1_opd_vac_sc <- as.data.table(case_p1_opd_vac_sc)
+case_p1_opd_vac_sc$ui_interval <- seq(0, 100, 2.5)
+
+# case (post-vacc in spread out scenario: phase2)
+case_p2_ipd_vac_sc  <- quantile(icer_dt_s$postvacc_p2_ipd_sc, probs = seq(0, 1, 0.025))
+case_p2_ipd_vac_sc <- as.data.table(case_p2_ipd_vac_sc)
+case_p2_ipd_vac_sc$ui_interval <- seq(0, 100, 2.5)
+case_p2_opd_vac_sc  <- quantile(icer_dt_s$postvacc_p2_opd_sc, probs = seq(0, 1, 0.025))
+case_p2_opd_vac_sc <- as.data.table(case_p2_opd_vac_sc)
+case_p2_opd_vac_sc$ui_interval <- seq(0, 100, 2.5)
+
+
+
+# case (prevacc in phase 1 only scenario)
 case_opd_unv_sc <- quantile(icer_dt_s$prevacc_opd, probs = seq(0, 1, 0.025))
 case_opd_unv_sc <- as.data.table(case_opd_unv_sc)
 case_opd_unv_sc$ui_interval <- seq(0, 100, 2.5)
@@ -1412,6 +1480,21 @@ wtp_post_scenario <- wtp_prob_scenario %>% filter(wtp_scenario > 0)
   xlab('WTP at DALYs averted (USD)') +
   ylab('probability (%)') +
   theme_bw ()
+  
+  ceac_all
+  
+  # opportunity costs lines 
+  
+  vertDf <- data.frame(wtp = c(166, 279, 2191), labels = c("lower-bound", "upper-bound", "GDP per capita 2021"))
+  
+  # add two graphs 
+  
+  ceac_all + geom_vline(aes(xintercept = wtp, color = labels), data = vertDf, show.legend=T) +
+    scale_colour_manual("WTP", values = c("lower-bound" = "black", "upper-bound" = "black", "GDP per capita 2021" = "green")) +
+    theme_bw() +
+    theme(legend.position = c(0.95, 0.95),
+          legend.justification = c("right", "top"))
+  
 
 
 # ------------------------------------------------------------------------------
