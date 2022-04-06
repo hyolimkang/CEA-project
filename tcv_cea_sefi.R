@@ -697,8 +697,6 @@ case_ui_low    <- c(ui_pre_low      = quantile(icer_dt$prevacc, c(0.025)),
 case_ui_high    <- c(ui_pre_high      = quantile(icer_dt$prevacc, c(0.975)),
                 ui_post_high     = quantile(icer_dt$postvacc, c(0.97)))
 
-data_1 <- data.frame(case, prepost, case_ui_low, case_ui_high)
-
 data_1 <- data.frame(prepost           = factor(c("pre-vaccination","post-vaccination"),
                                       levels = c("pre-vaccination", "post-vaccination")))
 case_averted <- ggplot(data = data_1, aes(y = case, x = prepost))+
@@ -720,8 +718,6 @@ death_ui_low    <- c(ui_pre_low        = quantile(icer_dt$pre_death_total, c(0.0
 
 death_ui_high   <- c(ui_pre_high       = quantile(icer_dt$pre_death_total, c(0.975)),
                ui_post_high      = quantile(icer_dt$post_death_total, c(0.97)))
-
-data_2 <- data.frame(death, prepost, death_ui_low, death_ui_high)
 
 data_2 <- data.frame(prepost       = factor(c("pre-vaccination","post-vaccination"),
                                             levels = c("pre-vaccination", "post-vaccination")))
@@ -746,8 +742,6 @@ ipd_ui_low    <- c(ui_pre_low        = quantile(icer_dt$prevacc_ipd, c(0.025)),
 ipd_ui_high   <- c(ui_pre_high       = quantile(icer_dt$prevacc_ipd, c(0.975)),
                ui_post_high      = quantile(icer_dt$postvacc_ipd, c(0.97)))
 
-data_3 <- data.frame(ipd, prepost, ipd_ui_low, ipd_ui_high)
-
 data_3 <- data.frame(prepost       = factor(c("pre-vaccination","post-vaccination"),
                                           levels = c("pre-vaccination", "post-vaccination")))
 ipd_averted <- ggplot(data = data_3, aes(y = ipd, x = prepost))+
@@ -769,8 +763,6 @@ daly_ui_low    <- c(ui_pre_low        = quantile(icer_dt$dalys_pre_total, c(0.02
 
 daly_ui_high   <- c(ui_pre_high       = quantile(icer_dt$dalys_pre_total, c(0.975)),
                ui_post_high      = quantile(icer_dt$dalys_post_total, c(0.97)))
-
-data_4 <- data.frame(case, prepost, daly_ui_low, daly_ui_high)
 
 data_4 <- data.frame(prepost       = factor(c("pre-vaccination","post-vaccination"),
                                           levels = c("pre-vaccination", "post-vaccination")))
