@@ -682,10 +682,8 @@ print(summary(icer_dt$icer_daly_total))
 print(quantile(icer_dt$icer_daly_total, c(.5 , .025, .975 )))
 
 # uncertainty ranges
-icer_ui <- quantile(icer_dt$icer_daly_total, probs = seq(0, 1, 0.025))
-icer_ui <- as.data.table(icer_ui)
-# uncertainty interval table (icer)
-icer_ui$ui_interval <- seq(0, 100, 2.5)
+icer_ui<- quantile(icer_dt$icer_daly_total, probs = c(0.025, 0.5, 0.975))
+icer_ui<- as.data.table(icer_ui)
 
 # cost
 cost_ui_unv <- quantile(icer_dt$totcost_unvacc, probs = seq(0, 1, 0.025))
@@ -701,34 +699,38 @@ case_ipd_unv$ui_interval <- seq(0, 100, 2.5)
 case_opd_unv <-  quantile(icer_dt$prevacc_opd, probs = seq(0, 1, 0.025))
 case_opd_unv <- as.data.table(case_opd_unv)
 case_opd_unv$ui_interval <- seq(0, 100, 2.5)
+case_tot_unv <- quantile(icer_dt$prevacc, probs = c(0.025, 0.5, 0.975))
+case_tot_unv <- as.data.table(case_tot_unv)
+case_tot_vac <- quantile(icer_dt$postvacc_p1, probs = c(0.025, 0.5, 0.975))
+case_tot_vac <- as.data.table(case_tot_vac)
 
 # case (difference)
 case_avert <- quantile(icer_dt$case_averted_total,probs = seq(0, 1, 0.025))
 case_avert <- as.data.table(case_avert)
 case_avert$ui_interval <- seq(0, 100, 2.5)
 # inpatient case
-incase_unv <- quantile(icer_dt$prevacc_ipd, probs = seq(0, 1, 0.025))
+incase_unv <- quantile(icer_dt$prevacc_ipd, probs = c(0.025, 0.5, 0.975))
 incase_unv <- as.data.table(incase_unv)
-incase_vac <- quantile(icer_dt$postvacc_p1_ipd, probs = seq(0, 1, 0.025))
+incase_vac <- quantile(icer_dt$postvacc_p1_ipd, probs = c(0.025, 0.5, 0.975))
 incase_vac <- as.data.table(incase_vac)
 incase_avt <- quantile(icer_dt$case_averted_ipd, probs = seq(0, 1, 0.025))
 incase_avt <- as.data.table(incase_avt)
 incase_avt$ui_interval <-seq(0, 100, 2.5)
 incase_diff <- cbind(incase_unv, incase_vac, incase_avt)
 # outpatient case 
-outcase_unv <- quantile(icer_dt$prevacc_opd, probs = seq(0, 1, 0.025))
+outcase_unv <- quantile(icer_dt$prevacc_opd, probs = c(0.025, 0.5, 0.975))
 outcase_unv <- as.data.table(outcase_unv)
-outcase_vac <- quantile(icer_dt$postvacc_p1_opd, probs = seq(0, 1, 0.025))
+outcase_vac <- quantile(icer_dt$postvacc_p1_opd, probs = c(0.025, 0.5, 0.975))
 outcase_vac <- as.data.table(outcase_vac)
 outcase_avt <- quantile(icer_dt$case_averted_opd, probs = seq(0, 1, 0.025))
 outcase_avt <- as.data.table(outcase_avt)
 outcase_avt$ui_interval <-seq(0, 100, 2.5)
 outcase_diff <- cbind(outcase_unv, outcase_vac, outcase_avt)
 # IPD deaths (prevacc)
-death_ipd_unv   <- quantile(icer_dt$pre_death_ipd, probs = seq(0, 1, 0.025))
+death_ipd_unv   <- quantile(icer_dt$pre_death_ipd, probs = c(0.025, 0.5, 0.975))
 death_ipd_unv   <- as.data.table(death_ipd_unv)
 # IPD deaths (postvacc)
-death_ipd_vac   <- quantile(icer_dt$post_death_ipd, probs = seq(0, 1, 0.025))
+death_ipd_vac   <- quantile(icer_dt$post_death_ipd, probs = c(0.025, 0.5, 0.975))
 death_ipd_vac   <- as.data.table(death_ipd_vac)
 # IPD deaths (diff)
 death_ipd_avert  <- quantile(icer_dt$death_averted_ipd, probs = seq(0, 1, 0.025))
@@ -736,19 +738,19 @@ death_ipd_avert  <- as.data.table(death_ipd_avert)
 death_ipd_avert$ui_interval <-seq(0, 100, 2.5)
 death_ipd <- cbind(death_ipd_unv, death_ipd_vac, death_ipd_avert)
 # OPD deaths
-death_opd_unv   <- quantile(icer_dt$pre_death_opd, probs = seq(0, 1, 0.025))
+death_opd_unv   <- quantile(icer_dt$pre_death_opd, probs = c(0.025, 0.5, 0.975))
 death_opd_unv   <- as.data.table(death_opd_unv)
-death_opd_vac   <- quantile(icer_dt$post_death_opd, probs = seq(0, 1, 0.025))
+death_opd_vac   <- quantile(icer_dt$post_death_opd, probs = c(0.025, 0.5, 0.975))
 death_opd_vac   <- as.data.table(death_opd_vac)
 death_opd_avert <- quantile(icer_dt$death_averted_opd, probs = seq(0, 1, 0.025))
 death_opd_avert <- as.data.table(death_opd_avert)
 death_opd_avert$ui_interval <-seq(0, 100, 2.5)
 death_opd       <- cbind(death_opd_unv, death_opd_vac, death_opd_avert)
 # deaths (prevacc)
-deaths_ui_unv <- quantile(icer_dt$pre_death_total, probs = seq(0, 1, 0.025))
+deaths_ui_unv <- quantile(icer_dt$pre_death_total, probs = c(0.025, 0.5, 0.975))
 deaths_ui_unv <- as.data.table(deaths_ui_unv)
 # deaths (postvacc)
-deaths_ui_vac <- quantile(icer_dt$post_death_total, probs = seq(0, 1, 0.025))
+deaths_ui_vac <- quantile(icer_dt$post_death_total, probs = c(0.025, 0.5, 0.975))
 deaths_ui_vac <- as.data.table(deaths_ui_vac)
 # deaths (difference)
 death_avert   <- quantile(icer_dt$death_averted, probs = seq(0, 1, 0.025))
@@ -777,8 +779,6 @@ wtp_dt <- as.data.table(wtp)
 
 # wtp table with probs
 wtp_prob <- cbind (wtp_dt, probability_cea)
-
-write_xlsx(wtp_prob, "/Users/hyolimkang/Desktop/IVI onedrive/OneDrive - International Vaccine Institute/Desktop/2021/TCV \\wtp_prob.xlsx")
 
 # keep only positive wtp values (negative values are dominant values, no need to show)
 wtp_post <- wtp_prob %>% filter(wtp > 0)
@@ -1176,9 +1176,12 @@ icer_scenario <- function (v_cost            = 2.96,
   return (list (totcost_vacc_tot              = totcost_vacc_tot,
                 totcost_unvacc                = totcost_unvacc, 
                 incremental_cost_total        = incremental_cost_total,
+                case_averted_ipd              = case_averted_ipd,
+                case_averted_opd              = case_averted_opd,
                 case_averted_total            = case_averted_total,
                 icer_tot                      = icer_tot,
                 distance                      = distance,
+                death_averted                 = death_averted,
                 pre_death_ipd                 = pre_death_ipd,
                 pre_death_opd                 = pre_death_opd,
                 pre_death_total               = pre_death_total,
@@ -1195,6 +1198,9 @@ icer_scenario <- function (v_cost            = 2.96,
                 postvacc_p1_opd_sc            = postvacc_p1_opd_sc,
                 postvacc_p2_ipd_sc            = postvacc_p2_ipd_sc,
                 postvacc_p2_opd_sc            = postvacc_p2_opd_sc,
+                postvacc_tot_sc               = postvacc_tot_sc,
+                postvacc_tot_ipd              = postvacc_tot_ipd,
+                postvacc_top_opd              = postvacc_tot_opd,
                 distance                      = distance,
                 yll_pre_ipd                   = yll_pre_ipd,
                 yll_pre_opd                   = yll_pre_opd,
@@ -1280,6 +1286,11 @@ for (i in 1:runs) {
                        postvacc_p1_opd_sc              = icer_sample_s$postvacc_p1_opd_sc,
                        postvacc_p2_ipd_sc              = icer_sample_s$postvacc_p2_ipd_sc,
                        postvacc_p2_opd_sc              = icer_sample_s$postvacc_p2_opd_sc,
+                       postvacc_tot_opd                = icer_sample_s$postvacc_top_opd,
+                       postvacc_tot_sc                 = icer_sample_s$postvacc_tot_sc,
+                       postvacc_tot_ipd                = icer_sample_s$postvacc_tot_ipd,
+                       case_averted_ipd                = icer_sample_s$case_averted_ipd,
+                       case_averted_opd                = icer_sample_s$case_averted_opd,
                        case_averted_total              = icer_sample_s$case_averted_total,
                        pre_death_ipd                   = icer_sample_s$pre_death_ipd,
                        pre_death_opd                   = icer_sample_s$pre_death_opd,
@@ -1287,10 +1298,10 @@ for (i in 1:runs) {
                        post_death_ipd                  = icer_sample_s$post_death_ipd,
                        post_death_opd                  = icer_sample_s$post_death_opd,
                        post_death_total                = icer_sample_s$post_death_total,
+                       death_averted                   = icer_sample_s$death_averted,
                        dalys_pre_total                 = icer_sample_s$dalys_pre_total,
                        dalys_post_total                = icer_sample_s$dalys_post_total, 
                        icer_daly_total                 = icer_sample_s$icer_daly_total,
-                       death_averted                   = icer_sample_s$death_averted,
                        death_averted_ipd               = icer_sample_s$death_averted_ipd,
                        death_averted_opd               = icer_sample_s$death_averted_opd,
                        incremental_daly_total          = icer_sample_s$incremental_daly_total
@@ -1313,27 +1324,26 @@ ggplot(data = icer_dt_s, aes(x=incremental_daly_total,
 
 
 # uncertainty ranges
-icer_ui_sc <- quantile(icer_dt_s$icer_daly_total, probs = seq(0, 1, 0.025))
+icer_ui_sc <- quantile(icer_dt_s$icer_daly_total, probs = c(0.025, 0.5, 0.975))
 icer_ui_sc <- as.data.table(icer_ui_sc)
-icer_ui_sc$ui_interval <- seq(0, 100, 2.5)
 
 # cost difference 
-cost_ui_sc <- quantile(icer_dt_s$incremental_cost_total, probs = seq(0, 1, 0.025))
+cost_ui_sc <- quantile(icer_dt_s$incremental_cost_total, probs = c(0.025, 0.5, 0.975))
 cost_ui_sc <- as.data.table(cost_ui_sc)
-cost_ui_sc$ui_interval <- seq(0, 100, 2.5)
+cost_ui_sc$ui_interval <- c("2.5%", "50%", "97.5%")
 
-cost_ui <- quantile(icer_dt$incremental_cost_total, probs = seq(0, 1, 0.025))
+cost_ui <- quantile(icer_dt$incremental_cost_total, probs = c(0.025, 0.5, 0.975))
 cost_ui <- as.data.table(cost_ui)
-cost_ui$ui_interval <- seq(0, 100, 2.5)
+cost_ui$ui_interval <- c("2.5%", "50%", "97.5%")
 
 # effect difference 
-daly_ui_sc <- quantile(icer_dt_s$incremental_daly_total, probs = seq(0, 1, 0.025))
+daly_ui_sc <- quantile(icer_dt_s$incremental_daly_total, probs = c(0.025, 0.5, 0.975))
 daly_ui_sc <- as.data.table(daly_ui_sc)
-daly_ui_sc$ui_interval <- seq(0, 100, 2.5)
+daly_ui_sc$ui_interval <- c("2.5%", "50%", "97.5%")
 
-daly_ui <- quantile(icer_dt$incremental_daly_total, probs = seq(0, 1, 0.025))
+daly_ui <- quantile(icer_dt$incremental_daly_total, probs = c(0.025, 0.5, 0.975))
 daly_ui <- as.data.table(daly_ui)
-daly_ui$ui_interval <- seq(0, 100, 2.5)
+daly_ui$ui_interval <- c("2.5%", "50%", "97.5%")
 
 
 # case (prevacc in spread out scenario vs. phase1 only: phase1)
@@ -1344,9 +1354,13 @@ case_p1_unv    <- quantile(icer_dt_s$prevacc_p1, probs = seq(0, 1, 0.025))
 case_p1_unv    <- as.data.table(case_p1_unv)
 case_p1_unv$ui_interval    <- seq(0, 100, 2.5)
 
-case_p2_unv_sc <- quantile(icer_dt_s$prevacc_p2, probs = seq(0, 1, 0.025))
+case_p2_unv_sc <- quantile(icer_dt_s$prevacc_p2, probs = c(0.025, 0.5, 0.975))
 case_p2_unv_sc <- as.data.table(case_p2_unv_sc)
-case_p2_unv_sc$ui_interval <- seq(0, 100, 2.5)
+case_p2_unv_sc$ui_interval <- c("2.5%", "50%", "97.5%")
+
+# total number of pre-vaccinated typhoid cases in scenario 
+case_tot_unv_sc <- quantile(icer_dt_s$prevacc_tot_sc, probs = c(0.025, 0.5, 0.975))
+case_tot_unv_sc <- as.data.table(case_tot_unv_sc)
 
 # case (post-vacc in spread out scenario: phase1)
 case_p1_ipd_vac_sc  <- quantile(icer_dt_s$postvacc_p1_ipd_sc, probs = seq(0, 1, 0.025))
@@ -1364,6 +1378,9 @@ case_p2_opd_vac_sc  <- quantile(icer_dt_s$postvacc_p2_opd_sc, probs = seq(0, 1, 
 case_p2_opd_vac_sc <- as.data.table(case_p2_opd_vac_sc)
 case_p2_opd_vac_sc$ui_interval <- seq(0, 100, 2.5)
 
+case_tot_vac_sc <- quantile(icer_dt_s$postvacc_tot_sc, probs = c(0.025, 0.5, 0.975))
+case_tot_vac_sc <- as.data.table(case_tot_vac_sc)
+case_tot_vac_sc$ui_interval <- c("2.5%", "50%", "97.5%")
 
 
 # case (prevacc in phase 1 only scenario)
@@ -1379,19 +1396,23 @@ case_avert_sc <- quantile(icer_dt_s$case_averted_total,probs = seq(0, 1, 0.025))
 case_avert_sc <- as.data.table(case_avert_sc)
 case_avert_sc$ui_interval <- seq(0, 100, 2.5)
 # inpatient case
-incase_unv_sc <- quantile(icer_dt_s$prevacc_ipd, probs = seq(0, 1, 0.025))
+incase_unv_sc <- quantile(icer_dt_s$prevacc_tot_ipd, probs = c(0.025, 0.5, 0.975))
 incase_unv_sc <- as.data.table(incase_unv_sc)
-incase_vac_sc <- quantile(icer_dt_s$postvacc_p1_ipd, probs = seq(0, 1, 0.025))
+incase_unv_sc$ui_interval <- seq(0, 100, 2.5)
+incase_vac_sc <- quantile(icer_dt_s$postvacc_tot_ipd, probs = seq(0, 1, 0.025))
 incase_vac_sc <- as.data.table(incase_vac_sc)
+incase_vac_sc$ui_interval <- seq(0, 100, 2.5)
 incase_avt_sc <- quantile(icer_dt_s$case_averted_ipd, probs = seq(0, 1, 0.025))
 incase_avt_sc <- as.data.table(incase_avt_sc)
 incase_avt_sc$ui_interval <-seq(0, 100, 2.5)
 incase_diff_sc <- cbind(incase_unv_sc, incase_vac_sc, incase_avt_sc)
 # outpatient case 
-outcase_unv_sc <- quantile(icer_dt_s$prevacc_opd, probs = seq(0, 1, 0.025))
+outcase_unv_sc <- quantile(icer_dt_s$prevacc_tot_opd, probs = seq(0, 1, 0.025))
 outcase_unv_sc <- as.data.table(outcase_unv_sc)
-outcase_vac_sc <- quantile(icer_dt_s$postvacc_p1_opd, probs = seq(0, 1, 0.025))
+outcase_unv_sc$ui_interval <- seq(0, 100, 2.5)
+outcase_vac_sc <- quantile(icer_dt_s$postvacc_tot_opd, probs = seq(0, 1, 0.025))
 outcase_vac_sc <- as.data.table(outcase_vac_sc)
+outcase_vac_sc$ui_interval <- seq(0, 100, 2.5)
 outcase_avt_sc <- quantile(icer_dt_s$case_averted_opd, probs = seq(0, 1, 0.025))
 outcase_avt_sc <- as.data.table(outcase_avt_sc)
 outcase_avt_sc$ui_interval <-seq(0, 100, 2.5)
@@ -1399,9 +1420,12 @@ outcase_diff_sc <- cbind(outcase_unv_sc, outcase_vac_sc, outcase_avt_sc)
 # IPD deaths (prevacc)
 death_ipd_unv_sc   <- quantile(icer_dt_s$pre_death_ipd, probs = seq(0, 1, 0.025))
 death_ipd_unv_sc   <- as.data.table(death_ipd_unv_sc)
+death_ipd_unv_sc$ui_interval <- seq(0, 100, 2.5)
 # IPD deaths (postvacc)
 death_ipd_vac_sc   <- quantile(icer_dt_s$post_death_ipd, probs = seq(0, 1, 0.025))
 death_ipd_vac_sc   <- as.data.table(death_ipd_vac_sc)
+death_ipd_vac_sc$ui_interval <- seq(0, 100, 2.5)
+
 # IPD deaths (diff)
 death_ipd_avert_sc  <- quantile(icer_dt_s$death_averted_ipd, probs = seq(0, 1, 0.025))
 death_ipd_avert_sc  <- as.data.table(death_ipd_avert_sc)
@@ -1410,8 +1434,11 @@ death_ipd_sc <- cbind(death_ipd_unv_sc, death_ipd_vac_sc, death_ipd_avert_sc)
 # OPD deaths
 death_opd_unv_sc   <- quantile(icer_dt_s$pre_death_opd, probs = seq(0, 1, 0.025))
 death_opd_unv_sc   <- as.data.table(death_opd_unv_sc)
+death_opd_unv_sc$ui_interval <- seq(0, 100, 2.5)
 death_opd_vac_sc   <- quantile(icer_dt_s$post_death_opd, probs = seq(0, 1, 0.025))
 death_opd_vac_sc   <- as.data.table(death_opd_vac_sc)
+death_opd_vac_sc$ui_interval <- seq(0, 100, 2.5)
+
 death_opd_avert_sc <- quantile(icer_dt_s$death_averted_opd, probs = seq(0, 1, 0.025))
 death_opd_avert_sc <- as.data.table(death_opd_avert_sc)
 death_opd_avert_sc$ui_interval <-seq(0, 100, 2.5)
@@ -1419,9 +1446,12 @@ death_opd_sc       <- cbind(death_opd_unv_sc, death_opd_vac_sc, death_opd_avert_
 # deaths (prevacc)
 deaths_ui_unv_sc <- quantile(icer_dt_s$pre_death_total, probs = seq(0, 1, 0.025))
 deaths_ui_unv_sc <- as.data.table(deaths_ui_unv_sc)
+deaths_ui_unv_sc$ui_interval <- seq(0, 100, 2.5)
 # deaths (postvacc)
 deaths_ui_vac_sc <- quantile(icer_dt_s$post_death_total, probs = seq(0, 1, 0.025))
 deaths_ui_vac_sc <- as.data.table(deaths_ui_vac_sc)
+deaths_ui_vac_sc$ui_interval <- seq(0, 100, 2.5)
+
 # deaths (difference)
 death_avert_sc   <- quantile(icer_dt_s$death_averted, probs = seq(0, 1, 0.025))
 death_avert_sc   <- as.data.table(death_avert_sc)
@@ -1430,9 +1460,11 @@ death_diff_sc    <- cbind(deaths_ui_unv_sc, deaths_ui_vac_sc, death_avert_sc)
 # dalys (prevacc)
 daly_ui_unv_sc   <- quantile(icer_dt_s$dalys_pre_total, probs = seq(0, 1, 0.025))
 daly_ui_unv_sc   <- as.data.table(daly_ui_unv_sc)
+daly_ui_unv_sc$ui_interval <-  seq(0, 100, 2.5)
 # dalys (postvacc)
 daly_ui_vac_sc   <- quantile(icer_dt_s$dalys_post_total, probs = seq(0, 1, 0.025))
 daly_ui_vac_sc   <- as.data.table(daly_ui_vac_sc)
+daly_ui_vac_sc$ui_interval <-  seq(0, 100, 2.5)
 # incremental daly 
 inc_daly_sc      <- quantile(icer_dt_s$incremental_daly_total, probs = seq(0, 1, 0.025))
 inc_daly_sc      <- as.data.table(inc_daly_sc)
@@ -1440,6 +1472,10 @@ inc_daly_sc$ui_interval <- seq(0, 100, 2.5)
 # combine daly difference table
 daly_diff_sc <- cbind(daly_ui_unv_sc, daly_ui_vac_sc, inc_daly_sc)
 
+
+# bind (with tcv vs. without tcv /phase1 only)
+tab1<-cbind(icer_ui, case_tot_unv, case_tot_vac, incase_unv, incase_vac, outcase_unv,outcase_vac, deaths_ui_vac, deaths_ui_unv, death_ipd_vac, death_ipd_unv, death_opd_vac, death_opd_unv)
+tab1[]
 
 
 # ceac
@@ -2402,8 +2438,6 @@ toc ()
   
   # wtp table with probs
   wtp_prob <- cbind (wtp_dt, probability_cea)
-  
-  write_xlsx(wtp_prob, "/Users/hyolimkang/Desktop/IVI onedrive/OneDrive - International Vaccine Institute/Desktop/2021/TCV \\wtp_prob.xlsx")
   
   # keep only positive wtp values (negative values are dominant values, no need to show)
   wtp_post <- wtp_prob %>% filter(wtp > 0)
